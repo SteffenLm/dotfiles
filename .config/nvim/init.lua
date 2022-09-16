@@ -21,10 +21,15 @@ vim.opt.termguicolors = true
 
 vim.g.mapleader = ' '
 vim.keymap.set('n', '<Leader>ff', '<CMD>Telescope find_files<CR>')
-vim.keymap.set('n', '<Leader>gf', '<CMD>Telescope grep_string<CR>')
+vim.keymap.set('n', '<Leader>gf', '<CMD>Telescope live_grep<CR>')
 vim.keymap.set('n', 'gd', '<Plug>(coc-definition)', { silent = true } )
 vim.keymap.set('n', 'gi', '<Plug>(coc-implementation)', { silent = true } )
 vim.keymap.set('n', 'gr', '<Plug>(coc-references)', { silent = true } )
+vim.keymap.set('n', '<Leader>pf', '<Plug>(Prettier)', { silent = true } )
+vim.keymap.set('n', '<Leader>ng', '<CMD>Neogit<CR>')
+vim.keymap.set('n', '<Leader>bn', ':<C-u>call gitblame#echo()<CR>', { silent = true } )
+
+vim.g.catppuccin_flavour = "macchiato" -- latte, frappe, macchiato, mocha
 
 vim.g.loaded_perl_provider = 0
 vim.g.loaded_python3_provider = 0
@@ -43,15 +48,26 @@ return require('packer').startup(function(use)
   -- Packer can manage itself
   use 'wbthomason/packer.nvim'
   use 'gruvbox-community/gruvbox'
+  use 'mhartington/oceanic-next'
+  use { "catppuccin/nvim", as = "catppuccin" }
   use 'nvim-lua/plenary.nvim'
   use 'nvim-telescope/telescope.nvim'
   use 'nvim-treesitter/nvim-treesitter'
+  use 'zivyangll/git-blame.vim'
   use {'neoclide/coc.nvim', branch = 'release', run = 'yarn install --frozen-lockfile'}
+  use {'prettier/vim-prettier', run = 'yarn install --frozen-lockfile'}
+  use {
+    'TimUntersberger/neogit',
+    requires = {
+      'nvim-lua/plenary.nvim',
+    }
+  }
 
   require('telescope').setup {
     defaults = {
       file_ignore_patterns = { 
-        "node_modules" 
+        "node_modules",
+        "package-lock.json" 
       }
     }
   }
@@ -63,6 +79,7 @@ return require('packer').startup(function(use)
       'gitignore',
       'html',
       'json',
+      'javascript',
       'lua',
       'markdown',
       'scss',
@@ -73,6 +90,9 @@ return require('packer').startup(function(use)
       additional_vim_regex_highlighting = false
     } 
   }
-  vim.cmd('colorscheme gruvbox')
+  
+  require("catppuccin").setup()
+
+  vim.cmd('colorscheme catppuccin')
 end)
 
