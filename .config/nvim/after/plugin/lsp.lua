@@ -1,6 +1,9 @@
-require("neogit").setup()
 require('mason').setup()
 require('mason-lspconfig').setup()
+
+local capabilities = require('cmp_nvim_lsp').default_capabilities(
+  vim.lsp.protocol.make_client_capabilities()
+);
 
 local attach = function()
   -- buffer = 0 means only for the current buffer;
@@ -26,6 +29,3 @@ require("mason-lspconfig").setup_handlers {
   end,
 }
 
-local capabilities = require('cmp_nvim_lsp').default_capabilities(
-  vim.lsp.protocol.make_client_capabilities()
-);
