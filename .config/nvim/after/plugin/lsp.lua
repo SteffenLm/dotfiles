@@ -29,3 +29,13 @@ require("mason-lspconfig").setup_handlers {
   end,
 }
 
+-- Configure LSP for Angular and NX Workspaces
+local lspconfig = require('lspconfig')
+local util = require('lspconfig.util')
+
+lspconfig.angularls.setup {
+  on_attach = on_attach,
+  capabilities = capabilities,
+  root_dir = util.root_pattern('project.json', 'angular.json'),
+}
+
