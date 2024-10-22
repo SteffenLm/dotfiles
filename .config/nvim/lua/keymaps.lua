@@ -1,4 +1,5 @@
 vim.g.mapleader = ' '
+vim.keymap.set('i', 'jj', '<Esc>')
 vim.keymap.set('n', '<Leader>pv', '<CMD>Ex<CR>')
 vim.keymap.set('n', '<Leader>ff', '<CMD>Telescope find_files<CR>')
 vim.keymap.set('n', '<Leader>gf', '<CMD>Telescope live_grep<CR>')
