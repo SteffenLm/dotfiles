@@ -1,5 +1,13 @@
-require('mason').setup()
-require('mason-lspconfig').setup()
+-- Configure Mason
+local mason = require('mason')
+local mason_lspconfig = require('mason-lspconfig')
+
+-- Configure LSP for Angular and NX Workspaces
+local lspconfig = require('lspconfig')
+local util = require('lspconfig.util')
+
+mason.setup();
+-- mason_lspconfig.setup();
 
 local capabilities = require('cmp_nvim_lsp').default_capabilities(
 vim.lsp.protocol.make_client_capabilities()
@@ -20,18 +28,20 @@ local attach = function()
   vim.keymap.set('n', '<Leader>dl', '<CMD>Telescope diagnostics<CR>');
 end
 
-require("mason-lspconfig").setup_handlers {
-  function (server_name) -- default handler (optional)
-    require("lspconfig")[server_name].setup {
-      capabilities = capabilities,
-      on_attach = attach
-    }
-  end,
+
+mason_lspconfig.setup {
+  ensure_installed = { "lua_ls", "pyright", "ts_ls" }, -- servers you want
+  automatic_installation = true,
 }
 
--- Configure LSP for Angular and NX Workspaces
-local lspconfig = require('lspconfig')
-local util = require('lspconfig.util')
+-- Instead of setup_handlers, loop over servers
+for _, server in ipairs(mason_lspconfig.get_installed_servers()) do
+  lspconfig[server].setup {
+      capabilities = capabilities,
+      on_attach = attach
+  }
+end
+
 
 lspconfig.angularls.setup {
   on_attach = on_attach,
