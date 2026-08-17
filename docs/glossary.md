@@ -17,7 +17,8 @@ Terms used across this repo's tmux/opencode docs.
   current window's sidebar, `prefix + E` toggles everywhere.
 - **OpenCode bridge** — the plugin's small JS shim
   (`tmux-agent-sidebar.js`) loaded by opencode from
-  `~/.config/opencode/plugins/`; it relays agent activity to the sidebar.
+  `~/.config/opencode/plugins/`; it relays agent activity to the sidebar. It is
+  a symlink into the TPM install (see ADR-0002), not a repo-tracked copy.
 - **Catppuccin flavour** — one of the plugin's palettes. `mocha` (dark) is
   the default here; `latte` is the light variant toggled by `prefix + m`.
 - **copy-mode** — tmux's scrollback/text-selection mode (`prefix + [`), here
