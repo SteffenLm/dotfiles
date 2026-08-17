@@ -2,9 +2,11 @@
 
 Terms used across this repo's tmux/opencode docs.
 
-- **stow package** — a directory in this repo (e.g. `dotfiles/tmux`,
-  `dotfiles/opencode`) that mirrors home-directory paths. Running
-  `stow dotfiles/<pkg>` from `~` symlinks its contents into the home tree.
+- **stow package** — a top-level directory in this repo (e.g. `tmux`,
+  `opencode`, `shell`) that mirrors home-directory paths. Install with
+  `cd ~/dotfiles && stow <pkg>` (run stow from inside the repo with the bare
+  package name — `stow` rejects slashes, so not `stow dotfiles/tmux`). See
+  [loader-system.md](./loader-system.md).
 - **TPM** — `tmux-plugins/tpm`, the tmux plugin manager. It clones plugins
   into `~/.tmux/plugins/` and wires the ones declared with `set -g @plugin`.
   Install new plugins with `prefix + I`, update with `prefix + U`.
@@ -22,3 +24,14 @@ Terms used across this repo's tmux/opencode docs.
   configured with vi-style keys.
 - **worktree / worktrees** — git worktrees, which the sidebar can spawn an
   agent into and tear down from a single key.
+- **loader / loader system** — the pattern where `shell/.zshenv` sources
+  `~/.zshenv.d/*` and `shell/.zshrc` sources `~/.zshrc.d/*` and
+  `~/.alias.d/*`. Each tool drops a snippet into one of these directories and
+  it loads automatically at startup.
+- **manifold directory** — a home directory (`~/.zshrc.d`, `~/.alias.d`) that
+  holds one per-tool symlink so snippets from many packages merge in one place
+  the loader reads.
+- **custom package** — the git-ignored `custom/` folder holding machine-specific
+  files (proxies, CAs, local aliases, local user names) that must not be
+  committed. Wired into the loaders via symlinks. See
+  [loader-system.md](./loader-system.md).
