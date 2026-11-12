@@ -118,6 +118,15 @@ the `starship` binary is absent. Zoxide is initialized the same way from
 `~/.alias.d/eza`, and `~/.alias.d/zoxide` supplies the Omarchy `zd` wrapper plus
 `alias cd="zd"`.
 
+### eza icons need a Nerd Font
+
+`ls`, `lsa`, `lt`, and `lta` pass `--icons`, so they only render correctly when
+the terminal's font provides Nerd Font glyphs. For a Windows Terminal session
+over SSH, install a Nerd Font on Windows (for example `JetBrainsMono Nerd Font
+Mono` from <https://www.nerdfonts.com/fonts>) and select it under **Settings →
+Profiles → Defaults → Appearance → Font face**. The server does not need the
+font: SSH transmits the glyphs and the client renders them.
+
 ### `~/.local/bin` on PATH
 
 Both entry points prepend `$HOME/.local/bin` to `PATH` with a guard, so the
