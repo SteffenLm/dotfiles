@@ -12,7 +12,7 @@ that mirrors home-directory paths relative to `~`:
 
 ```
 dotfiles/
-├── shell/ starship/ pkg/           # shell loader + shared tool snippets
+├── shell/ starship/ pkg/ mise/     # shell loader + shared tool snippets
 ├── eza/ zoxide/                    # eza aliases + zoxide init/cd wrapper
 ├── tmux/                           # app config package
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
@@ -23,7 +23,8 @@ dotfiles/
 ```
 
 For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
-`starship/.bashrc.d/starship` → `~/.bashrc.d/starship`, and
+`starship/.bashrc.d/starship` → `~/.bashrc.d/starship`,
+`mise/.config/mise/config.toml` → `~/.config/mise/config.toml`, and
 `zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`.
 
 ### Correct stow commands
@@ -39,7 +40,7 @@ stow -D <pkg>  # remove package (unlink)
 stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's layout
 ```
 
-Shared package names are `shell`, `tmux`, `starship`, `pkg`, `eza`, and
+Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`, and
 `zoxide`. Distro package names are `ubuntu`, `cachyos`, and `omarchy`; stow
 **exactly one** of them.
 To switch distros, unstow the old package first (`stow -D ubuntu`), because all
@@ -57,7 +58,7 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg eza zoxide ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide ubuntu
 ```
 
 `install.sh <distro>` runs that command for you after installing tools. It also
@@ -113,10 +114,12 @@ in `~/.profile.d`; interactive setup belongs in `~/.bashrc.d` and
 `~/.alias.d`.
 
 Starship is activated from `~/.bashrc.d/starship`, and is silently skipped when
-the `starship` binary is absent. Zoxide is initialized the same way from
-`~/.bashrc.d/zoxide`. The `eza` alias block (`ls`, `lsa`, `lt`, `lta`) lives in
-`~/.alias.d/eza`, and `~/.alias.d/zoxide` supplies the Omarchy `zd` wrapper plus
-`alias cd="zd"`.
+the `starship` binary is absent. Mise is activated the same way from
+`~/.bashrc.d/mise` (with command hashing disabled via `set +h` so newly
+installed shims are always found), and is silently skipped when `mise` is
+absent. Zoxide is initialized the same way from `~/.bashrc.d/zoxide`. The `eza`
+alias block (`ls`, `lsa`, `lt`, `lta`) lives in `~/.alias.d/eza`, and
+`~/.alias.d/zoxide` supplies the Omarchy `zd` wrapper plus `alias cd="zd"`.
 
 ### eza icons need a Nerd Font
 
@@ -149,6 +152,7 @@ point the same way.
 └── ...   (machine-specific only; see custom/ below)
 
 ~/.bashrc.d/
+├── mise     -> ../dotfiles/mise/.bashrc.d/mise
 ├── pkg      -> ../dotfiles/pkg/.bashrc.d/pkg
 ├── starship -> ../dotfiles/starship/.bashrc.d/starship
 └── zoxide   -> ../dotfiles/zoxide/.bashrc.d/zoxide
@@ -239,7 +243,8 @@ package database for repo packages. It exits non-zero if anything is missing.
    `~/.config/dotfiles/pkg-backend.sh`, `~/.zshenv`, and `~/.zshrc` to
    `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
    the current repo;
-5. stows `shell tmux starship pkg eza zoxide <distro>` with `--no-folding`.
+5. stows `shell tmux starship pkg mise eza zoxide <distro>` with
+   `--no-folding`.
 
 Options: `--dry-run` prints every package/backup/stow command without running
 it; `--no-stow` installs tools but stops before backup and stow. The script
@@ -270,8 +275,11 @@ custom/
 └── .config/nix/nix.conf         # machine-specific nix settings
 ```
 
-Language runtimes (Go, Node, Rust, Java) are intentionally **not** configured
-here or in the committed packages; mise owns them.
+Language runtimes are owned by mise, not by `custom/`. The committed `mise`
+package carries the global tool versions in
+`mise/.config/mise/config.toml` (currently Node `26.13.1`); machine-specific
+overrides, if ever needed, belong in `custom/`. Rust (rustup) and Java (system
+OpenJDK) are still managed outside mise.
 
 ### How `custom/` reaches the loaders
 
