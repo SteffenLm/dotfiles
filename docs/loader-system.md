@@ -239,10 +239,9 @@ package database for repo packages. It exits non-zero if anything is missing.
 3. installs `stow` (needed for the next step) and every entry in
    `packages.list`;
 4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
-   `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
-   `~/.config/dotfiles/pkg-backend.sh`, `~/.zshenv`, and `~/.zshrc` to
-   `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
-   the current repo;
+   `~/.tmux.conf`, `~/.config/tmux/tmux.conf`, and
+   `~/.config/dotfiles/pkg-backend.sh` to `~/.dotfiles-backup-<timestamp>/`,
+   skipping symlinks that already point at the current repo;
 5. stows `shell tmux starship pkg mise eza zoxide <distro>` with
    `--no-folding`.
 

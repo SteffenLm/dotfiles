@@ -116,7 +116,7 @@ backup_existing() {
   backup_dir="$HOME/.dotfiles-backup-$timestamp"
 
   for file in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.bash_profile" \
-    "$HOME/.tmux.conf" "$HOME/.zshenv" "$HOME/.zshrc" \
+    "$HOME/.tmux.conf" \
     "$HOME/.config/tmux/tmux.conf" \
     "$HOME/.config/dotfiles/pkg-backend.sh"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
