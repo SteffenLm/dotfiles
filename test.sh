@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# One-time interactive harness for the bash + starship migration.
+# Sandbox harness for the bash shell configuration.
 # Usage: ./test.sh
-#   KEEP=1 ./test.sh   # keep the sandbox dir after exit
+#   ./test.sh </dev/null  # automated run; no interactive sandbox shell
+#   KEEP=1 ./test.sh      # keep the sandbox dir after exit
 
 set -u
 
@@ -169,28 +170,31 @@ echo
 echo "RESULTS: $pass passed, $fail failed"
 echo
 echo "Sandbox HOME: $sbx"
-echo "Entering interactive bash (non-login). Try these, then 'exit':"
-echo "  echo \$STARSHIP_SHELL                # expect: bash"
-echo "  echo \$TEST_PROFILE_D                # expect: loaded"
-echo "  echo \$HTTP_PROXY                    # seeded from custom/.profile.d/proxy"
-echo "  alias update-os                      # distro-specific pkg upgrade"
-echo "  pkg present jq                       # expect: jq: installed"
-echo "  alias ls                             # expect: eza -lh ..."
-echo "  type z zd                            # zoxide functions"
-echo "  cd /tmp && pwd                       # real dir uses builtin cd"
-echo "  echo \$__DOTFILES_PROFILE_D_LOADED   # expect: 1"
-echo "  env -u __DOTFILES_PROFILE_D_LOADED bash -l   # fresh login in sandbox"
-echo "  env -u __DOTFILES_PROFILE_D_LOADED bash      # fresh terminal in sandbox"
-echo
-echo "tmux (isolated server, sandbox config, socket '$TSOCK'):"
-echo "  tmux -L $TSOCK ls                      # server is already running"
-echo "  tmux -L $TSOCK attach                  # enter the Omarchy tmux config"
-echo "  tmux -L $TSOCK show-options -gv prefix # expect: C-Space"
-echo "  tmux -L $TSOCK kill-server             # optional, cleanup does it anyway"
-echo "  # inside: prefix q reloads; prefix c opens window 1 (1-based); status is on top"
-echo
 
-HOME="$sbx" bash -i
+if [ -t 0 ]; then
+  echo "Entering interactive bash (non-login). Try these, then 'exit':"
+  echo "  echo \$STARSHIP_SHELL                # expect: bash"
+  echo "  echo \$TEST_PROFILE_D                # expect: loaded"
+  echo "  echo \$HTTP_PROXY                    # seeded from custom/.profile.d/proxy"
+  echo "  alias update-os                      # distro-specific pkg upgrade"
+  echo "  pkg present jq                       # expect: jq: installed"
+  echo "  alias ls                             # expect: eza -lh ..."
+  echo "  type z zd                            # zoxide functions"
+  echo "  cd /tmp && pwd                       # real dir uses builtin cd"
+  echo "  echo \$__DOTFILES_PROFILE_D_LOADED   # expect: 1"
+  echo "  env -u __DOTFILES_PROFILE_D_LOADED bash -l   # fresh login in sandbox"
+  echo "  env -u __DOTFILES_PROFILE_D_LOADED bash      # fresh terminal in sandbox"
+  echo
+  echo "tmux (isolated server, sandbox config, socket '$TSOCK'):"
+  echo "  tmux -L $TSOCK ls                      # server is already running"
+  echo "  tmux -L $TSOCK attach                  # enter the Omarchy tmux config"
+  echo "  tmux -L $TSOCK show-options -gv prefix # expect: C-Space"
+  echo "  tmux -L $TSOCK kill-server             # optional, cleanup does it anyway"
+  echo "  # inside: prefix q reloads; prefix c opens window 1 (1-based); status is on top"
+  echo
 
-echo
-echo "sandbox shell exited."
+  HOME="$sbx" bash -i
+
+  echo
+  echo "sandbox shell exited."
+fi

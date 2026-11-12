@@ -31,6 +31,10 @@ Terms used across this repo's docs.
   `packages.list`, backs up real shell/tmux files once, then stows the shared
   packages plus the chosen distro package. Supports `--dry-run` and
   `--no-stow`.
+- **sandbox harness** — `test.sh`, which stows packages into a temporary
+  `$HOME` and runs shell/tmux checks without touching the live home directory.
+  With stdin redirected (`</dev/null`) it only runs the checks; on a TTY it
+  also opens an interactive sandbox shell. `KEEP=1` preserves the sandbox.
 - **`update-os`** — the per-distro alias for `pkg upgrade`. On Ubuntu it runs
   `apt-get update && apt-get upgrade`; on CachyOS `pacman -Syu`; on Omarchy
   `omarchy-update`.

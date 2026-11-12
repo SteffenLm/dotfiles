@@ -18,6 +18,7 @@ dotfiles/
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
 ├── install.sh                      # package install + one-time stow helper
+├── test.sh                         # sandbox harness (see below)
 ├── custom/                         # git-ignored, machine-specific (see below)
 └── docs/                           # glossary + this loader doc
 ```
@@ -253,6 +254,23 @@ Options: `--dry-run` prints every package/backup/stow command without running
 it; `--no-stow` installs tools but stops before backup and stow. The script
 never runs `chsh`; switching the login shell is a manual step after verifying
 a fresh login shell.
+
+## Testing the shell configuration
+
+`./test.sh` is the sandbox harness. It stows the shared packages into a
+temporary `$HOME`, runs login/non-login shell checks, and exercises tmux on an
+isolated socket — it never touches the live home directory.
+
+```sh
+./test.sh                                  # checks, then an interactive sandbox (TTY only)
+env -u __DOTFILES_PROFILE_D_LOADED ./test.sh </dev/null  # automated run
+KEEP=1 ./test.sh                           # keep the sandbox directory
+REPO=/path/to/repo LIVE=/path/to/live ./test.sh          # override paths
+```
+
+With stdin redirected, the harness prints `RESULTS: <pass> passed, <fail>
+failed` and exits without opening a shell. On a TTY it drops into the sandbox
+shell after the checks so you can inspect aliases, `pkg`, zoxide, and tmux.
 
 ## The `custom/` folder (git-ignored, machine-specific)
 
