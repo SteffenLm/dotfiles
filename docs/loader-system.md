@@ -118,7 +118,9 @@ Starship is activated from `~/.bashrc.d/starship`, and is silently skipped when
 the `starship` binary is absent. Mise is activated the same way from
 `~/.bashrc.d/mise` (with command hashing disabled via `set +h` so newly
 installed shims are always found), and is silently skipped when `mise` is
-absent. Zoxide is initialized the same way from `~/.bashrc.d/zoxide`. fzf's key
+absent. Zoxide is initialized the same way from `~/.bashrc.d/zoxide`. Because
+mise owns Java, its activation also exports `JAVA_HOME` for the selected
+Temurin JDK. fzf's key
 bindings (`Ctrl-R` history, `Ctrl-T` files, `Alt-C` directories) load from
 `~/.bashrc.d/fzf`, preferring `/usr/share/fzf/key-bindings.bash` (Arch) and
 falling back to `/usr/share/doc/fzf/examples/key-bindings.bash` (Ubuntu). The
@@ -298,9 +300,10 @@ custom/
 
 Language runtimes are owned by mise, not by `custom/`. The committed `mise`
 package carries the global tool versions in
-`mise/.config/mise/config.toml` (currently Node `26.13.1`); machine-specific
-overrides, if ever needed, belong in `custom/`. Rust (rustup) and Java (system
-OpenJDK) are still managed outside mise.
+`mise/.config/mise/config.toml` (Node `26.13.1` and Temurin JDK
+`21.0.13+9.0.LTS`); machine-specific overrides, if ever needed, belong in
+`custom/`. Rust (rustup) is still managed outside mise; the apt OpenJDK 21 JRE
+is retained for OS packages even though mise's JDK wins on `PATH`.
 
 ### How `custom/` reaches the loaders
 

@@ -21,7 +21,8 @@ Terms used across this repo's docs.
 - **`mise`** — the runtime-manager package. `~/.bashrc.d/mise` runs
   `mise activate bash` (after `set +h`), and
   `~/.config/mise/config.toml` holds the tracked global `[tools]` versions
-  (Node `26.13.1`). Skipped when `mise` is absent.
+  (Node `26.13.1` and Temurin JDK `21.0.13+9.0.LTS`; activation also exports
+  `JAVA_HOME`). Skipped when `mise` is absent.
 - **`eza`** — the alias package (`~/.alias.d/eza`) that maps `ls`, `lsa`, `lt`,
   and `lta` to Omarchy's exact `eza` definitions. Skipped when `eza` is absent.
 - **`zoxide`** — the package with two snippets: `~/.bashrc.d/zoxide` runs
