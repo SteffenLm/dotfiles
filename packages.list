@@ -10,6 +10,7 @@ jq
 shellcheck
 build-essential
 mise
+opencode
 fzf
 gh
 ripgrep

@@ -9,10 +9,12 @@ declare -gA PKG_MAP=(
 declare -gA PKG_METHOD=(
   [starship]=github
   [mise]=installer
+  [opencode]=github
 )
 
 STARSHIP_VERSION=v1.27.0
 MISE_VERSION=v2026.11.7
+OPENCODE_VERSION=v1.19.5
 
 _pkg_sudo() {
   if [ "$(id -u)" -eq 0 ]; then
@@ -66,6 +68,24 @@ _pkg_install_github() {
       esac
       base=https://github.com/starship/starship/releases/download/$version
       ;;
+    opencode)
+      version=$OPENCODE_VERSION
+      case $(uname -m) in
+        x86_64 | amd64)
+          asset=opencode-linux-x64.tar.gz
+          checksum=588310a336fa3b9df36b3f0225b26f679d453efaad0cf3d66c3651ef3ec1647a
+          ;;
+        aarch64 | arm64)
+          asset=opencode-linux-arm64.tar.gz
+          checksum=fae5be262d693b7c5e562856cc473e59e741772936db0c0600ac0d5ed5bd088b
+          ;;
+        *)
+          printf 'pkg: opencode: unsupported architecture: %s\n' "$(uname -m)" >&2
+          return 1
+          ;;
+      esac
+      base=https://github.com/anomalyco/opencode/releases/download/$version
+      ;;
     *)
       printf 'pkg: no GitHub installer for %s\n' "$name" >&2
       return 1
@@ -79,16 +99,22 @@ _pkg_install_github() {
   fi
 
   tmp=$(mktemp -d) || return 1
-  if ! curl -fsSL -o "$tmp/$asset" "$base/$asset" ||
-    ! curl -fsSL -o "$tmp/$asset.sha256" "$base/$asset.sha256"; then
+  if ! curl -fsSL -o "$tmp/$asset" "$base/$asset"; then
     rm -rf "$tmp"
     return 1
   fi
 
-  checksum=$(cat "$tmp/$asset.sha256") || {
-    rm -rf "$tmp"
-    return 1
-  }
+  if [ -z "$checksum" ]; then
+    if ! curl -fsSL -o "$tmp/$asset.sha256" "$base/$asset.sha256"; then
+      rm -rf "$tmp"
+      return 1
+    fi
+    checksum=$(cat "$tmp/$asset.sha256") || {
+      rm -rf "$tmp"
+      return 1
+    }
+  fi
+
   if ! (cd "$tmp" && printf '%s  %s\n' "$checksum" "$asset" | sha256sum -c -); then
     rm -rf "$tmp"
     return 1

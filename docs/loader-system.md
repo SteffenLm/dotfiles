@@ -116,7 +116,8 @@ the `starship` binary is absent.
 
 Both entry points prepend `$HOME/.local/bin` to `PATH` with a guard, so the
 directory appears exactly once. This is where Ubuntu gets standalone tools that
-are not in apt (`starship`, `mise`) and where the `fd` shim is created.
+are not in apt (`starship`, `mise`, `opencode`) and where the `fd` shim is
+created.
 
 Distro-provided tools stay in `/usr/bin`; `~/.local/bin` only fills the gaps.
 
@@ -183,7 +184,9 @@ Each backend owns:
   `build-essential` → `base-devel` on Arch).
 - `PKG_METHOD` — tools that need a non-repo installer (`github` or
   `installer`). Ubuntu uses it for `starship` (pinned GitHub release, SHA-256
-  verified) and `mise` (official `mise.run` installer, version pinned).
+  verified), `mise` (official `mise.run` installer, version pinned), and
+  `opencode` (pinned GitHub release, SHA-256 verified). On Arch, `opencode`
+  comes from the native `extra` repository instead, so its version can differ.
 - `_pkg_install`, `_pkg_remove`, `_pkg_update`, `_pkg_upgrade`, `_pkg_search`,
   `_pkg_present`.
 - A sudo-or-root helper, plus dry-run support (`PKG_DRY_RUN=1`).
