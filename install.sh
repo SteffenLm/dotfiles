@@ -121,19 +121,17 @@ backup_existing() {
     "$HOME/.config/dotfiles/pkg-backend.sh"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
 
-    if [ -L "$file" ]; then
-      target=$(readlink -f -- "$file" 2>/dev/null || true)
-      case $file in
-        "$HOME/.config/dotfiles/pkg-backend.sh")
-          [ "$target" = "$REPO/$distro/.config/dotfiles/pkg-backend.sh" ] && continue
-          ;;
-        *)
-          case $target in
-            "$REPO"/*) [ -e "$target" ] && continue ;;
-          esac
-          ;;
-      esac
-    fi
+    target=$(readlink -f -- "$file" 2>/dev/null || true)
+    case $file in
+      "$HOME/.config/dotfiles/pkg-backend.sh")
+        [ "$target" = "$REPO/$distro/.config/dotfiles/pkg-backend.sh" ] && continue
+        ;;
+      *)
+        case $target in
+          "$REPO"/*) [ -e "$target" ] && continue ;;
+        esac
+        ;;
+    esac
 
     if [ "$found" = 0 ]; then
       run mkdir -p "$backup_dir"
