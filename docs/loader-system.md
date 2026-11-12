@@ -13,6 +13,7 @@ that mirrors home-directory paths relative to `~`:
 ```
 dotfiles/
 ├── shell/ starship/ pkg/           # shell loader + shared tool snippets
+├── eza/ zoxide/                    # eza aliases + zoxide init/cd wrapper
 ├── tmux/                           # app config package
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
@@ -21,8 +22,9 @@ dotfiles/
 └── docs/                           # glossary + this loader doc
 ```
 
-For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`, and
-`starship/.bashrc.d/starship` → `~/.bashrc.d/starship`.
+For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
+`starship/.bashrc.d/starship` → `~/.bashrc.d/starship`, and
+`zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`.
 
 ### Correct stow commands
 
@@ -37,8 +39,9 @@ stow -D <pkg>  # remove package (unlink)
 stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's layout
 ```
 
-Shared package names are `shell`, `tmux`, `starship`, and `pkg`. Distro package
-names are `ubuntu`, `cachyos`, and `omarchy`; stow **exactly one** of them.
+Shared package names are `shell`, `tmux`, `starship`, `pkg`, `eza`, and
+`zoxide`. Distro package names are `ubuntu`, `cachyos`, and `omarchy`; stow
+**exactly one** of them.
 To switch distros, unstow the old package first (`stow -D ubuntu`), because all
 distro packages provide the same backend and `update-os` paths.
 
@@ -54,7 +57,7 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg eza zoxide ubuntu
 ```
 
 `install.sh <distro>` runs that command for you after installing tools. It also
@@ -110,7 +113,10 @@ in `~/.profile.d`; interactive setup belongs in `~/.bashrc.d` and
 `~/.alias.d`.
 
 Starship is activated from `~/.bashrc.d/starship`, and is silently skipped when
-the `starship` binary is absent.
+the `starship` binary is absent. Zoxide is initialized the same way from
+`~/.bashrc.d/zoxide`. The `eza` alias block (`ls`, `lsa`, `lt`, `lta`) lives in
+`~/.alias.d/eza`, and `~/.alias.d/zoxide` supplies the Omarchy `zd` wrapper plus
+`alias cd="zd"`.
 
 ### `~/.local/bin` on PATH
 
@@ -135,10 +141,13 @@ point the same way.
 
 ~/.bashrc.d/
 ├── pkg      -> ../dotfiles/pkg/.bashrc.d/pkg
-└── starship -> ../dotfiles/starship/.bashrc.d/starship
+├── starship -> ../dotfiles/starship/.bashrc.d/starship
+└── zoxide   -> ../dotfiles/zoxide/.bashrc.d/zoxide
 
 ~/.alias.d/
-└── update-os -> ../dotfiles/ubuntu/.alias.d/update-os
+├── eza       -> ../dotfiles/eza/.alias.d/eza
+├── update-os -> ../dotfiles/ubuntu/.alias.d/update-os
+└── zoxide    -> ../dotfiles/zoxide/.alias.d/zoxide
 ```
 
 The loader sources everything in each directory, so each tool's snippet is
@@ -221,7 +230,7 @@ package database for repo packages. It exits non-zero if anything is missing.
    `~/.config/dotfiles/pkg-backend.sh`, `~/.zshenv`, and `~/.zshrc` to
    `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
    the current repo;
-5. stows `shell tmux starship pkg <distro>` with `--no-folding`.
+5. stows `shell tmux starship pkg eza zoxide <distro>` with `--no-folding`.
 
 Options: `--dry-run` prints every package/backup/stow command without running
 it; `--no-stow` installs tools but stops before backup and stow. The script

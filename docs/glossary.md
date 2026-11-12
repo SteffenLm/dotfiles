@@ -3,10 +3,10 @@
 Terms used across this repo's docs.
 
 - **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
-  `starship`, `pkg`, `ubuntu`) that mirrors home-directory paths. Install with
-  `cd ~/dotfiles && stow <pkg>` (run stow from inside the repo with the bare
-  package name — `stow` rejects slashes, so not `stow dotfiles/tmux`). See
-  [loader-system.md](./loader-system.md).
+  `starship`, `pkg`, `eza`, `zoxide`, `ubuntu`) that mirrors home-directory
+  paths. Install with `cd ~/dotfiles && stow <pkg>` (run stow from inside the
+  repo with the bare package name — `stow` rejects slashes, so not
+  `stow dotfiles/tmux`). See [loader-system.md](./loader-system.md).
 - **distro package** — one of `ubuntu`, `cachyos`, or `omarchy`. It supplies
   the `pkg` backend and the `update-os` alias. Stow exactly one per machine.
 - **`pkg`** — the shell function loaded from `~/.bashrc.d/pkg`. It dispatches
@@ -18,6 +18,11 @@ Terms used across this repo's docs.
   commands.
 - **`packages.list`** — the repo-root list of generic tool names installed by
   `install.sh`. It is not a stow package and is never linked into `$HOME`.
+- **`eza`** — the alias package (`~/.alias.d/eza`) that maps `ls`, `lsa`, `lt`,
+  and `lta` to Omarchy's exact `eza` definitions. Skipped when `eza` is absent.
+- **`zoxide`** — the package with two snippets: `~/.bashrc.d/zoxide` runs
+  `zoxide init bash` (defining `z` and `zi`), and `~/.alias.d/zoxide` defines
+  the `zd` function plus `alias cd="zd"`. Skipped when `zoxide` is absent.
 - **`install.sh`** — the one-shot installer: `./install.sh <distro>`. Installs
   `packages.list`, backs up real shell/tmux files once, then stows the shared
   packages plus the chosen distro package. Supports `--dry-run` and

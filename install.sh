@@ -152,14 +152,14 @@ backup_existing() {
 backup_existing
 
 cd "$REPO"
-run stow --no-folding -t "$HOME" shell tmux starship pkg "$distro"
+run stow --no-folding -t "$HOME" shell tmux starship pkg eza zoxide "$distro"
 
 if [ "$dry_run" = 0 ]; then
   cat <<'EOF'
 
 Next steps:
   1. Start a fresh login shell: exec bash -l
-  2. Verify: type pkg; type update-os; pkg present tmux
+  2. Verify: type pkg; type update-os; type z; alias ls; pkg present tmux
   3. After verifying, switch the login shell: chsh -s /usr/bin/bash
 EOF
 fi
