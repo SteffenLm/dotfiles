@@ -1,0 +1,19 @@
+# Base tools installed on every distro by install.sh.
+# Generic names only; each distro backend maps them to native package names.
+stow
+tmux
+starship
+bash-completion
+curl
+git
+jq
+shellcheck
+build-essential
+mise
+fzf
+gh
+ripgrep
+fd
+btop
+zoxide
+eza

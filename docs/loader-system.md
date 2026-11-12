@@ -1,8 +1,9 @@
-# Loader system, `custom/`, and stow commands
+# Loader system, packages, `custom/`, and stow commands
 
-This document explains how the repo organizes shell config, where
-machine-specific (non-committed) files live, and the exact stow commands to
-use. Dotfiles are managed with [GNU Stow](https://www.gnu.org/software/stow/).
+This document explains how the repo organizes shell config, how tools are
+installed, where machine-specific (non-committed) files live, and the exact
+stow commands to use. Dotfiles are managed with
+[GNU Stow](https://www.gnu.org/software/stow/).
 
 ## Stow packages and the directory layout
 
@@ -11,14 +12,17 @@ that mirrors home-directory paths relative to `~`:
 
 ```
 dotfiles/
-├── brew/ shell/ cargo/ nvm/ sdkman/ ubuntu/ eos/   # per-tool packages
-├── nvim/ opencode/ tmux/                            # app config packages
-├── custom/      # git-ignored, machine-specific (see below)
-└── docs/        # ADRs + glossary (this file's friends)
+├── shell/ starship/ pkg/           # shell loader + shared tool snippets
+├── tmux/                           # app config package
+├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
+├── packages.list                   # generic tool list (not a stow package)
+├── install.sh                      # package install + one-time stow helper
+├── custom/                         # git-ignored, machine-specific (see below)
+└── docs/                           # glossary + this loader doc
 ```
 
-For example `tmux/.tmux.conf` → `~/.tmux.conf`, and
-`tmux/.config/tmux/toggle-flavour.sh` → `~/.config/tmux/toggle-flavour.sh`.
+For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`, and
+`starship/.bashrc.d/starship` → `~/.bashrc.d/starship`.
 
 ### Correct stow commands
 
@@ -33,8 +37,10 @@ stow -D <pkg>  # remove package (unlink)
 stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's layout
 ```
 
-Package names are the top-level folders: `shell`, `tmux`, `opencode`, `nvim`,
-`brew`, `cargo`, `nvm`, `sdkman`, `ubuntu`, `eos`.
+Shared package names are `shell`, `tmux`, `starship`, and `pkg`. Distro package
+names are `ubuntu`, `cachyos`, and `omarchy`; stow **exactly one** of them.
+To switch distros, unstow the old package first (`stow -D ubuntu`), because all
+distro packages provide the same backend and `update-os` paths.
 
 > ⚠️ Do NOT write `stow dotfiles/tmux` or `stow tmux` from anywhere other than
 > `~/dotfiles` — the former errors with `Slashes are not permitted in package
@@ -44,60 +50,180 @@ The symlinks appear in home with a `dotfiles/<pkg>/...` prefix because stow's
 default target is the *parent* of the stow directory (`~`), so it computes the
 relative path through `~/dotfiles/...`.
 
+A normal install stows the shared packages plus one distro package:
+
+```sh
+cd ~/dotfiles
+stow --no-folding -t "$HOME" shell tmux starship pkg ubuntu
+```
+
+`install.sh <distro>` runs that command for you after installing tools. It also
+backs up real shell/tmux files once, because stow refuses to replace regular
+files.
+
 ## The loader system
 
-The shell startup files are split into a tiny loader plus per-concern snippet
-directories. `shell/.zshenv` and `shell/.zshrc` each contain a loop that
-sources every file inside a home directory:
+The shell startup files are split into two tiny loaders plus per-concern
+snippet directories. Bash needs two entry points because it reads different
+files for login shells and for non-login interactive shells:
 
-```zsh
-# shell/.zshenv
-DIRECTORY=$HOME/.zshenv.d
-if [ -d "$DIRECTORY" ]; then
-  for file in $DIRECTORY/**/*(-.); source $file
-fi
+- `shell/.bash_profile` — login shells (TTY login, `ssh` with a PTY, `su -`).
+- `shell/.bashrc` — non-login interactive shells (a terminal opened from the
+  desktop, a tmux pane).
 
-# shell/.zshrc  (sources two directories)
-DIRECTORY=$HOME/.zshrc.d
-if [ -d "$DIRECTORY" ]; then
-  for file in $DIRECTORY//**/*(-.); source $file
-fi
+`shell/.bash_profile` sources `~/.profile.d`, marks it loaded, then sources
+`~/.bashrc` if it exists. `shell/.bashrc` returns immediately when the shell is
+not interactive; otherwise it sources `~/.profile.d` **once**, then
+`~/.bashrc.d`, then `~/.alias.d`:
 
-DIRECTORY=$HOME/.alias.d
-if [ -d "$DIRECTORY" ]; then
-  for file in $DIRECTORY//**/*(-.); source $file
-fi
+```bash
+_source_dir() {
+  local dir=$1 file
+  [ -d "$dir" ] || return 0
+  while IFS= read -r -d '' file; do
+    . "$file"
+  done < <(find -L "$dir" -type f -print0 2>/dev/null | LC_ALL=C sort -z)
+}
 ```
+
+The helper sources every regular file in a directory. It follows symlinks
+(`-L`) because stow installs snippets as symlinks, and sorts with `LC_ALL=C
+sort -z` so paths containing spaces work and load order is deterministic.
+After the loaders run, each unsets the helper.
 
 Loading order:
 
-| Loader | Sources | What runs |
-|--------|---------|-----------|
-| `shell/.zshenv` | `~/.zshenv.d/*` | before every zsh (env vars, paths) |
-| `shell/.zshrc`  | `~/.zshrc.d/*`  | interactive shells (tool init) |
-| `shell/.zshrc`  | `~/.alias.d/*`  | interactive shells (aliases) |
+| Entry point | Shell kind | Sources (in order) | What runs |
+|-------------|------------|--------------------|-----------|
+| `.bash_profile` | login | `~/.profile.d/*` → `~/.bashrc` | env, then interactive config |
+| `.bashrc` | non-login interactive | `~/.profile.d/*` (once) → `~/.bashrc.d/*` → `~/.alias.d/*` | env, tool init, aliases |
+| `.bashrc` | non-interactive | nothing (returns early) | — |
+
+The exported sentinel `__DOTFILES_PROFILE_D_LOADED` makes `~/.profile.d` load
+exactly once: a login shell loads it in `.bash_profile`, and the `.bashrc` it
+sources skips the second pass. Child shells inherit the flag.
+
+Why not put everything in `.profile`? Login files are never read by a terminal
+opened from the desktop (a non-login interactive shell), so aliases,
+completion, prompt, and tool init would be missing there. Environment belongs
+in `~/.profile.d`; interactive setup belongs in `~/.bashrc.d` and
+`~/.alias.d`.
+
+Starship is activated from `~/.bashrc.d/starship`, and is silently skipped when
+the `starship` binary is absent.
+
+### `~/.local/bin` on PATH
+
+Both entry points prepend `$HOME/.local/bin` to `PATH` with a guard, so the
+directory appears exactly once. This is where Ubuntu gets standalone tools that
+are not in apt (`starship`, `mise`) and where the `fd` shim is created.
+
+Distro-provided tools stay in `/usr/bin`; `~/.local/bin` only fills the gaps.
 
 ### The home manifold directories
 
-`~/.zshrc.d` and `~/.alias.d` are **real directories** that act as a merge
-point. Each tool package drops a single symlink into them, named after the
-tool:
+`~/.bashrc.d` and `~/.alias.d` are **real directories** that act as merge
+points. Each tool package drops a single symlink into one of them, named after
+the tool. `~/.profile.d` is normally a whole-folder symlink to
+`custom/.profile.d` (see below); if it is a real directory, it acts as a merge
+point the same way.
 
 ```
-~/.zshrc.d/
-├── brew    -> ../dotfiles/brew/.zshrc.d/brew
-├── cargo   -> ../dotfiles/cargo/.zshrc.d/cargo
-├── nvm     -> ../dotfiles/nvm/.zshrc.d/nvm
-└── sdkman  -> ../dotfiles/sdkman/.zshrc.d/sdkman
+~/.profile.d/
+└── ...   (machine-specific only; see custom/ below)
+
+~/.bashrc.d/
+├── pkg      -> ../dotfiles/pkg/.bashrc.d/pkg
+└── starship -> ../dotfiles/starship/.bashrc.d/starship
 
 ~/.alias.d/
-├── brew    -> ../dotfiles/brew/.alias.d/brew
-├── sdkman  -> ../dotfiles/sdkman/.alias.d/sdkman
-└── ubuntu  -> ../dotfiles/ubuntu/.alias.d/ubuntu
+└── update-os -> ../dotfiles/ubuntu/.alias.d/update-os
 ```
 
-The loader sources everything in the directory, so each tool's snippet is
+The loader sources everything in each directory, so each tool's snippet is
 loaded automatically at shell startup — no per-tool edits to the loaders.
+
+## Packages and tools: `pkg`, `packages.list`, and the distro backends
+
+The tool set is listed once, with generic names, in `packages.list` at the repo
+root. That file is **not** a stow package and is never symlinked into `$HOME`.
+
+`pkg` is a shell function loaded from `~/.bashrc.d/pkg`. It is a thin
+dispatcher:
+
+```sh
+pkg install <pkg...>
+pkg remove <pkg...>
+pkg update
+pkg upgrade
+pkg search <term...>
+pkg present <pkg...>
+```
+
+The dispatcher lazily sources exactly one backend:
+
+```
+~/.config/dotfiles/pkg-backend.sh
+```
+
+That symlink comes from the stowed distro package:
+
+| Distro    | Backend                                              | Package manager                |
+|-----------|------------------------------------------------------|--------------------------------|
+| `ubuntu`  | `ubuntu/.config/dotfiles/pkg-backend.sh`             | `apt-get`                      |
+| `cachyos` | `cachyos/.config/dotfiles/pkg-backend.sh`            | `pacman`                       |
+| `omarchy` | `omarchy/.config/dotfiles/pkg-backend.sh`            | `pacman` + `omarchy-update`    |
+
+Set `DOTFILES_PKG_BACKEND` to point at a different backend; `install.sh` uses
+that to source the repo copy before the package is stowed.
+
+Each backend owns:
+
+- `PKG_MAP` — generic name → native package name (`fd` → `fd-find` on Ubuntu,
+  `build-essential` → `base-devel` on Arch).
+- `PKG_METHOD` — tools that need a non-repo installer (`github` or
+  `installer`). Ubuntu uses it for `starship` (pinned GitHub release, SHA-256
+  verified) and `mise` (official `mise.run` installer, version pinned).
+- `_pkg_install`, `_pkg_remove`, `_pkg_update`, `_pkg_upgrade`, `_pkg_search`,
+  `_pkg_present`.
+- A sudo-or-root helper, plus dry-run support (`PKG_DRY_RUN=1`).
+
+`pkg update` syncs package state before an install. Ubuntu refreshes apt
+indexes; CachyOS runs `pacman -Syu` (so installing does not leave a partial
+upgrade); Omarchy runs `omarchy-update`.
+
+`pkg upgrade` is what the per-distro alias calls:
+
+```
+~/.alias.d/update-os -> ../dotfiles/<distro>/.alias.d/update-os
+```
+
+All three aliases are `alias update-os='pkg upgrade'`; the backend decides
+whether that means `apt-get update && apt-get upgrade`, `pacman -Syu`, or
+`omarchy-update`.
+
+`pkg present` checks command availability for standalone tools and the native
+package database for repo packages. It exits non-zero if anything is missing.
+
+### `install.sh`
+
+`install.sh <distro>`:
+
+1. validates the distro and sources its backend through the `pkg` dispatcher;
+2. runs `pkg update`;
+3. installs `stow` (needed for the next step) and every entry in
+   `packages.list`;
+4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
+   `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
+   `~/.config/dotfiles/pkg-backend.sh`, `~/.zshenv`, and `~/.zshrc` to
+   `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
+   the current repo;
+5. stows `shell tmux starship pkg <distro>` with `--no-folding`.
+
+Options: `--dry-run` prints every package/backup/stow command without running
+it; `--no-stow` installs tools but stops before backup and stow. The script
+never runs `chsh`; switching the login shell is a manual step after verifying
+a fresh login shell.
 
 ## The `custom/` folder (git-ignored, machine-specific)
 
@@ -115,32 +241,36 @@ config paths it needs:
 ```
 custom/
 ├── .alias.d/git                 # git-verify on/off   (corporate sslVerify)
-├── .zshenv.d/
+├── .profile.d/
 │   ├── nix-os                   # source $HOME/.nix-profile nix.sh
 │   ├── open-code                # NODE_EXTRA_CA_CERTS
 │   └── proxy                    # HTTP(S)/FTP/ALL proxy exports
-├── .zshrc.d/                    # (empty, ready for use)
+├── .bashrc.d/                   # (empty, ready for use)
 └── .config/nix/nix.conf         # machine-specific nix settings
 ```
+
+Language runtimes (Go, Node, Rust, Java) are intentionally **not** configured
+here or in the committed packages; mise owns them.
 
 ### How `custom/` reaches the loaders
 
 `custom` is wired in two ways, depending on whether the target home directory
 is exclusive to it or shared:
 
-- **Exclusive directory** — `~/.zshenv.d` is a **whole-folder symlink** to the
-  repo's `custom/.zshenv.d`:
+- **Exclusive directory** — `~/.profile.d` is a **whole-folder symlink** to the
+  repo's `custom/.profile.d`:
   ```
-  ~/.zshenv.d -> dotfiles/custom/.zshenv.d
+  ~/.profile.d -> dotfiles/custom/.profile.d
   ```
-  Nothing else writes to `~/.zshenv.d`, so the whole folder is linked.
+  Nothing else writes to `~/.profile.d`, so the whole folder is linked.
 
 - **Shared (manifold) directory** — since `~/.alias.d` also receives files
-  from `brew`, `sdkman`, `ubuntu`, etc., `custom` must add **per-file symlinks**
-  into the same real directory:
+  from `ubuntu`, `cachyos`, `omarchy`, and `custom`, `custom` must add
+  **per-file symlinks** into the same real directory:
   ```
   ~/.alias.d/git -> ../dotfiles/custom/.alias.d/git
   ```
+  The same applies to `~/.bashrc.d` if a local snippet is needed there.
 
 - **Non-loader config** — paths outside the loader dirs are linked individually:
   ```
@@ -156,13 +286,28 @@ committed (`git status` stays clean).
 
 1. Create the package folder mirroring the home path, e.g.
    `mkdir -p vim/.config/vim`.
-2. Add the snippet(s) under the right loader subdir
-   (`<pkg>/.zshrc.d/<tool>`, `<pkg>/.alias.d/<tool>`, etc.).
-3. Wire it into the home:
+2. Add the snippet(s) under the right loader subdir:
+   - `<pkg>/.profile.d/<tool>` — login/session environment;
+   - `<pkg>/.bashrc.d/<tool>` — interactive tool init;
+   - `<pkg>/.alias.d/<tool>` — aliases.
+3. If the tool is installed with the shared tool set, add its generic name to
+   `packages.list` and any native-name mapping to each backend.
+4. Wire it into the home:
    ```sh
    cd ~/dotfiles && stow vim
    ```
-4. If the snippet is machine-specific instead of shared, put a copy in
+5. If the snippet is machine-specific instead of shared, put a copy in
    `custom/` and link it manually (see above) rather than committing it.
-5. Confirm with `ls -la ~/.zshrc.d` (or the relevant dir) that the new symlink
+6. Confirm with `ls -la ~/.bashrc.d` (or the relevant dir) that the new symlink
    resolves.
+
+## Adding a distro
+
+1. Create `<distro>/.config/dotfiles/pkg-backend.sh` with the backend contract
+   above (maps, methods, commands, sudo helper, dry-run).
+2. Add `<distro>/.alias.d/update-os` with `alias update-os='pkg upgrade'`.
+3. Add the distro name to the validation in `install.sh`.
+4. Test a dry run:
+   ```sh
+   ./install.sh <distro> --dry-run
+   ```

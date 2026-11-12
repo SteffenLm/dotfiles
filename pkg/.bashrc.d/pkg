@@ -1,0 +1,69 @@
+# shellcheck shell=bash
+
+_pkg_usage() {
+  cat <<'EOF'
+usage: pkg <command> [args]
+
+commands:
+  install <pkg...>    install packages
+  remove <pkg...>     remove packages
+  update              sync package indexes/state
+  upgrade             update and upgrade installed packages
+  search <term...>    search the distro repositories
+  present <pkg...>    report whether packages are installed
+EOF
+}
+
+_pkg_load_backend() {
+  local backend=${DOTFILES_PKG_BACKEND:-$HOME/.config/dotfiles/pkg-backend.sh}
+
+  if [ ! -r "$backend" ]; then
+    printf 'pkg: backend not found or unreadable: %s\n' "$backend" >&2
+    printf 'pkg: set DOTFILES_PKG_BACKEND to a distro backend\n' >&2
+    return 1
+  fi
+
+  if [ "${_DOTFILES_PKG_BACKEND_LOADED:-}" != "$backend" ]; then
+    # shellcheck disable=SC1090
+    . "$backend" || return 1
+    _DOTFILES_PKG_BACKEND_LOADED=$backend
+  fi
+}
+
+pkg() {
+  _pkg_load_backend || return 1
+
+  local op=${1:-}
+  if [ $# -gt 0 ]; then
+    shift
+  fi
+
+  case $op in
+    install)
+      _pkg_install "$@"
+      ;;
+    remove)
+      _pkg_remove "$@"
+      ;;
+    update)
+      _pkg_update "$@"
+      ;;
+    upgrade)
+      _pkg_upgrade "$@"
+      ;;
+    search)
+      _pkg_search "$@"
+      ;;
+    present)
+      _pkg_present "$@"
+      ;;
+    help | --help | -h | '')
+      _pkg_usage
+      ;;
+    *)
+      printf 'pkg: unknown command: %s\n' "$op" >&2
+      _pkg_usage >&2
+      return 2
+      ;;
+  esac
+}

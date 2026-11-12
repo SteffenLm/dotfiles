@@ -1,37 +1,52 @@
 # Glossary
 
-Terms used across this repo's tmux/opencode docs.
+Terms used across this repo's docs.
 
-- **stow package** — a top-level directory in this repo (e.g. `tmux`,
-  `opencode`, `shell`) that mirrors home-directory paths. Install with
+- **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
+  `starship`, `pkg`, `ubuntu`) that mirrors home-directory paths. Install with
   `cd ~/dotfiles && stow <pkg>` (run stow from inside the repo with the bare
   package name — `stow` rejects slashes, so not `stow dotfiles/tmux`). See
   [loader-system.md](./loader-system.md).
-- **TPM** — `tmux-plugins/tpm`, the tmux plugin manager. It clones plugins
-  into `~/.tmux/plugins/` and wires the ones declared with `set -g @plugin`.
-  Install new plugins with `prefix + I`, update with `prefix + U`.
-- **prefix** — the tmux key that introduces commands. Here it stays the
-  default `C-b`; composite bindings read like `prefix + e`.
-- **tmux-agent-sidebar** — `hiroppy/tmux-agent-sidebar`; a sidebar tracking
-  Claude Code, Codex, and OpenCode agent panes. `prefix + e` toggles the
-  current window's sidebar, `prefix + E` toggles everywhere.
-- **OpenCode bridge** — the plugin's small JS shim
-  (`tmux-agent-sidebar.js`) loaded by opencode from
-  `~/.config/opencode/plugins/`; it relays agent activity to the sidebar. It is
-  a symlink into the TPM install (see ADR-0002), not a repo-tracked copy.
-- **Catppuccin flavour** — one of the plugin's palettes. `mocha` (dark) is
-  the default here; `latte` is the light variant toggled by `prefix + m`.
+- **distro package** — one of `ubuntu`, `cachyos`, or `omarchy`. It supplies
+  the `pkg` backend and the `update-os` alias. Stow exactly one per machine.
+- **`pkg`** — the shell function loaded from `~/.bashrc.d/pkg`. It dispatches
+  `install`, `remove`, `update`, `upgrade`, `search`, and `present` to the
+  active distro backend.
+- **pkg backend** — `<distro>/.config/dotfiles/pkg-backend.sh`, stowed to
+  `~/.config/dotfiles/pkg-backend.sh`. It owns the native package names
+  (`PKG_MAP`), non-repo installers (`PKG_METHOD`), and the actual apt/pacman
+  commands.
+- **`packages.list`** — the repo-root list of generic tool names installed by
+  `install.sh`. It is not a stow package and is never linked into `$HOME`.
+- **`install.sh`** — the one-shot installer: `./install.sh <distro>`. Installs
+  `packages.list`, backs up real shell/tmux files once, then stows the shared
+  packages plus the chosen distro package. Supports `--dry-run` and
+  `--no-stow`.
+- **`update-os`** — the per-distro alias for `pkg upgrade`. On Ubuntu it runs
+  `apt-get update && apt-get upgrade`; on CachyOS `pacman -Syu`; on Omarchy
+  `omarchy-update`.
+- **prefix** — the tmux key that introduces commands. Here `C-Space`, with
+  `C-b` available as the secondary prefix (`prefix2`); composite bindings read
+  like `prefix + q`.
+- **tmux config** — `tmux/.config/tmux/tmux.conf`, stowed to
+  `~/.config/tmux/tmux.conf`. It is a verbatim copy of Omarchy's
+  `config/tmux/tmux.conf`, including upstream's status/border theme; there are
+  no plugins or local patches. Upstream is the source of truth: refresh the
+  repo copy by copying the upstream file into the repo, then restow if needed.
 - **copy-mode** — tmux's scrollback/text-selection mode (`prefix + [`), here
   configured with vi-style keys.
-- **worktree / worktrees** — git worktrees, which the sidebar can spawn an
-  agent into and tear down from a single key.
-- **loader / loader system** — the pattern where `shell/.zshenv` sources
-  `~/.zshenv.d/*` and `shell/.zshrc` sources `~/.zshrc.d/*` and
-  `~/.alias.d/*`. Each tool drops a snippet into one of these directories and
+- **worktree / worktrees** — git worktrees, used to run parallel agent
+  sessions against separate branches.
+- **loader / loader system** — the pattern where `shell/.bash_profile` sources
+  `~/.profile.d/*` for login shells, and `shell/.bashrc` sources
+  `~/.profile.d/*` (once), `~/.bashrc.d/*`, and `~/.alias.d/*` for interactive
+  non-login shells. Each tool drops a snippet into one of these directories and
   it loads automatically at startup.
-- **manifold directory** — a home directory (`~/.zshrc.d`, `~/.alias.d`) that
-  holds one per-tool symlink so snippets from many packages merge in one place
-  the loader reads.
+- **manifold directory** — a home directory (`~/.bashrc.d`, `~/.alias.d`, and
+  `~/.profile.d` when it is a real directory) that holds one per-tool symlink
+  so snippets from many packages merge in one place the loader reads. When
+  `~/.profile.d` is a whole-folder symlink to `custom/.profile.d`, that folder
+  is the manifold.
 - **custom package** — the git-ignored `custom/` folder holding machine-specific
   files (proxies, CAs, local aliases, local user names) that must not be
   committed. Wired into the loaders via symlinks. See
