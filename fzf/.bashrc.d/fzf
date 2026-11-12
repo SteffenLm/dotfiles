@@ -1,0 +1,15 @@
+# shellcheck shell=bash
+
+if command -v fzf >/dev/null 2>&1; then
+  for file in \
+    /usr/share/fzf/key-bindings.bash \
+    /usr/share/doc/fzf/examples/key-bindings.bash
+  do
+    if [ -f "$file" ]; then
+      # shellcheck disable=SC1090,SC1091
+      . "$file"
+      break
+    fi
+  done
+  unset file
+fi

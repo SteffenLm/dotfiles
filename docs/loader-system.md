@@ -13,7 +13,7 @@ that mirrors home-directory paths relative to `~`:
 ```
 dotfiles/
 ├── shell/ starship/ pkg/ mise/     # shell loader + shared tool snippets
-├── eza/ zoxide/                    # eza aliases + zoxide init/cd wrapper
+├── eza/ zoxide/ fzf/               # eza aliases, zoxide init/cd, fzf keys
 ├── tmux/                           # app config package
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
@@ -40,9 +40,9 @@ stow -D <pkg>  # remove package (unlink)
 stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's layout
 ```
 
-Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`, and
-`zoxide`. Distro package names are `ubuntu`, `cachyos`, and `omarchy`; stow
-**exactly one** of them.
+Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`,
+`zoxide`, and `fzf`. Distro package names are `ubuntu`, `cachyos`, and `omarchy`;
+stow **exactly one** of them.
 To switch distros, unstow the old package first (`stow -D ubuntu`), because all
 distro packages provide the same backend and `update-os` paths.
 
@@ -58,7 +58,7 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf ubuntu
 ```
 
 `install.sh <distro>` runs that command for you after installing tools. It also
@@ -117,8 +117,11 @@ Starship is activated from `~/.bashrc.d/starship`, and is silently skipped when
 the `starship` binary is absent. Mise is activated the same way from
 `~/.bashrc.d/mise` (with command hashing disabled via `set +h` so newly
 installed shims are always found), and is silently skipped when `mise` is
-absent. Zoxide is initialized the same way from `~/.bashrc.d/zoxide`. The `eza`
-alias block (`ls`, `lsa`, `lt`, `lta`) lives in `~/.alias.d/eza`, and
+absent. Zoxide is initialized the same way from `~/.bashrc.d/zoxide`. fzf's key
+bindings (`Ctrl-R` history, `Ctrl-T` files, `Alt-C` directories) load from
+`~/.bashrc.d/fzf`, preferring `/usr/share/fzf/key-bindings.bash` (Arch) and
+falling back to `/usr/share/doc/fzf/examples/key-bindings.bash` (Ubuntu). The
+`eza` alias block (`ls`, `lsa`, `lt`, `lta`) lives in `~/.alias.d/eza`, and
 `~/.alias.d/zoxide` supplies the Omarchy `zd` wrapper plus `alias cd="zd"`.
 
 ### eza icons need a Nerd Font
@@ -152,6 +155,7 @@ point the same way.
 └── ...   (machine-specific only; see custom/ below)
 
 ~/.bashrc.d/
+├── fzf      -> ../dotfiles/fzf/.bashrc.d/fzf
 ├── mise     -> ../dotfiles/mise/.bashrc.d/mise
 ├── pkg      -> ../dotfiles/pkg/.bashrc.d/pkg
 ├── starship -> ../dotfiles/starship/.bashrc.d/starship
@@ -242,7 +246,7 @@ package database for repo packages. It exits non-zero if anything is missing.
    `~/.tmux.conf`, `~/.config/tmux/tmux.conf`, and
    `~/.config/dotfiles/pkg-backend.sh` to `~/.dotfiles-backup-<timestamp>/`,
    skipping symlinks that already point at the current repo;
-5. stows `shell tmux starship pkg mise eza zoxide <distro>` with
+5. stows `shell tmux starship pkg mise eza zoxide fzf <distro>` with
    `--no-folding`.
 
 Options: `--dry-run` prints every package/backup/stow command without running
