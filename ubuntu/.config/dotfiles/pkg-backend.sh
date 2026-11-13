@@ -18,7 +18,7 @@ declare -gA PKG_METHOD=(
 STARSHIP_VERSION=v1.27.0
 MISE_VERSION=v2026.11.7
 NIX_VERSION=2.35.1
-OPENCODE_VERSION=v1.19.5
+OPENCODE_VERSION=v2.3.0
 NEOVIM_VERSION=v0.12.6
 KUBECTL_VERSION=v1.37.2
 
@@ -100,11 +100,11 @@ _pkg_install_github() {
       case $(uname -m) in
         x86_64 | amd64)
           asset=opencode-linux-x64.tar.gz
-          checksum=588310a336fa3b9df36b3f0225b26f679d453efaad0cf3d66c3651ef3ec1647a
+          checksum=fc0f81522aceeabac47693d88389efa2bc517ce74c2c38fd6967819fcc6e4d3b
           ;;
         aarch64 | arm64)
           asset=opencode-linux-arm64.tar.gz
-          checksum=fae5be262d693b7c5e562856cc473e59e741772936db0c0600ac0d5ed5bd088b
+          checksum=3207fb5cdec448d479242c0f1a14f4f7bdfcad3a79209b5eb8f9003725e93711
           ;;
         *)
           printf 'pkg: opencode: unsupported architecture: %s\n' "$(uname -m)" >&2
