@@ -59,12 +59,15 @@ Terms used across this repo's docs.
   (prefix, keybindings, status/border theme) with two local adaptations: a
   tmux < 3.5 guard around `extended-keys-format csi-u` and a `?` binding that
   runs `tmux-keybindings`. There are no plugins or local theme patches.
+  Reloading with `prefix q` or `tmux source-file` is non-destructive; it can
+  duplicate appended `terminal-features` entries until the server restarts.
 - **`tmux-keybindings`** — `tmux/.local/bin/tmux-keybindings`, stowed to
   `~/.local/bin/tmux-keybindings`. A standalone port of Omarchy's
   `omarchy-menu-tmux-keybindings`: starts a throwaway tmux server, clears the
   key tables, sources the config, and prints annotated lines such as
   `PREFIX + q → Reload configuration`. Use `--print` for stdout; no
-  `omarchy-*` binary is required.
+  `omarchy-*` binary is required. The `?` binding runs it as a pager popup
+  (`--print | less -R`), not an interactive menu.
 - **copy-mode** — tmux's scrollback/text-selection mode (`prefix + [`), here
   configured with vi-style keys.
 - **worktree / worktrees** — git worktrees, used to run parallel agent

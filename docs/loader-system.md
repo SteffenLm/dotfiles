@@ -299,6 +299,11 @@ a fresh login shell.
 temporary `$HOME`, runs login/non-login shell checks, and exercises tmux on an
 isolated socket — it never touches the live home directory.
 
+The automated checks cover the loader, readline (`~/.inputrc`), history and
+completion, starship prompt/config, the interactive environment, the Omarchy
+aliases and functions, the bat shim when `batcat`/`bat` is available, and the
+tmux keybindings. With `bat` installed the suite currently passes cleanly.
+
 ```sh
 ./test.sh                                  # checks, then an interactive sandbox (TTY only)
 env -u __DOTFILES_PROFILE_D_LOADED ./test.sh </dev/null  # automated run

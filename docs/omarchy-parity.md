@@ -9,6 +9,20 @@ Upstream is [`omacom/omarchy`](https://github.com/omacom/omarchy), branch
 `quattro` (snapshot read 2026-11-13). Keep this branch in mind: Omarchy's
 default branch is not `main`.
 
+## Current state
+
+The portable parity work is implemented and stowed.
+
+- `bat` and `yt-dlp` are installed. On Ubuntu, `~/.local/bin/bat` resolves to
+  `/usr/bin/batcat`.
+- `./test.sh </dev/null` passes the full suite (58 checks at the time of
+  writing, with `bat` available).
+- The live tmux server was reloaded in place with
+  `tmux source-file ~/.config/tmux/tmux.conf`; the session and windows were
+  kept. `prefix ?` opens the annotated pager popup on tmux 3.4.
+- `tmux 3.4` is the supported local version. The only version-sensitive tmux
+  option is guarded as described below.
+
 ## What is copied or adapted
 
 | Upstream (`quattro`) | Local path | Status | Notes |
@@ -16,7 +30,7 @@ default branch is not `main`.
 | `default/bash/inputrc` | `shell/.inputrc` → `~/.inputrc` | copied | Prefix history search on Up/Down, `menu-complete` on Tab, case-insensitive and colored completions. Read by every Readline program. |
 | `default/bash/shell` (history) | `shell/.bashrc.d/history` | copied | `histappend`, `ignoreboth`, `HISTSIZE=32768`. |
 | `default/bash/shell` (completion) | `shell/.bashrc.d/completion` | copied | Sources `/usr/share/bash-completion/bash_completion` when not already loaded. `set +h` lives in the existing mise snippet. |
-| `default/bash/envs` | `shell/.bashrc.d/env` | adapted | `nvim`→`vim`→`vi` editor fallback, `xdg-open` as `BROWSER`, `BAT_THEME=ansi`, `MANROFFOPT=-c`, and a `MANPAGER` guarded on `bat` + `col`. Locale and `PATH` handling already exist in the loader. |
+| `default/bash/envs` | `shell/.bashrc.d/env` | adapted | `nvim`→`vim`→`vi` editor fallback, `xdg-open` as `BROWSER`, `BAT_THEME=ansi`, `MANROFFOPT=-c`, and a `MANPAGER` guarded on `bat` + `col`. `PATH` handling already exists in the loader; locale comes from the system environment. |
 | `default/bash/aliases` | `shell/.alias.d/omarchy` | adapted | Portable alias subset (see below). |
 | `default/bash/aliases` (`open`, `n`) | `shell/.bashrc.d/functions` | copied | Shell functions rather than aliases. |
 | `default/bash/aliases` (`ff`, `eff`, `sff`) | `fzf/.alias.d/ff` | adapted | Only defined when both `fzf` and `bat` are present. |
@@ -36,8 +50,16 @@ Ported from Omarchy:
 
 Deliberately skipped:
 
-- app-specific: `c`, `cx`, `cy`, `d`, `r`
-- Omarchy-only: `a`, `h`, `ic`, `ix`, `icx`
+- aliases, app-specific: `c`, `cx`, `cy`, `d`, `r`
+- aliases, Omarchy-only: `a`, `h`, `ic`, `ix`, `icx`
+- `default/bash/init`: `try` and `$OMARCHY_PATH/default/bash/completions`
+  (Omarchy-specific; mise, zoxide, and fzf init already live in their own
+  snippets here)
+- `default/bash/envs`: the locale bootstrap fallback (the system locale is
+  already set in the environment)
+- `ff`'s `TERM=xterm-kitty` `kitty icat` image-preview branch; the port always
+  uses the portable `bat` preview
+- `tldr` (see Packages)
 
 ## Packages
 
@@ -67,6 +89,16 @@ stdout; without it, the script pages through `less` when interactive.
 tmux server's environment. It normally is, because the shell loaders prepend it
 before tmux is started.
 
+`prefix ?` opens a **pager popup**, not an interactive search menu: the popup
+runs `tmux-keybindings --print | less -R`. Scroll with the pager and press `q`
+to close it. The popup was verified on tmux 3.4 without restarting the server.
+
+Reloading the config with `prefix q` or
+`tmux source-file ~/.config/tmux/tmux.conf` is non-destructive: sessions,
+windows, and panes stay. It re-appends `terminal-features` values, so a
+reloaded server can show a duplicate `xterm-kitty:extkeys` entry. That is
+cosmetic and clears on the next server restart.
+
 ## Refreshing from upstream
 
 Raw files on branch `quattro`:
@@ -74,6 +106,7 @@ Raw files on branch `quattro`:
 ```text
 https://raw.githubusercontent.com/omacom/omarchy/quattro/default/bash/inputrc
 https://raw.githubusercontent.com/omacom/omarchy/quattro/default/bash/shell
+https://raw.githubusercontent.com/omacom/omarchy/quattro/default/bash/init
 https://raw.githubusercontent.com/omacom/omarchy/quattro/default/bash/envs
 https://raw.githubusercontent.com/omacom/omarchy/quattro/default/bash/aliases
 https://raw.githubusercontent.com/omacom/omarchy/quattro/config/starship.toml
@@ -98,11 +131,15 @@ stow --no-folding -t "$HOME" shell starship fzf tmux
 env -u __DOTFILES_PROFILE_D_LOADED bash -l
 ```
 
+Run `bash -l` interactively: a non-interactive `bash -l` skips `~/.bashrc` by
+design, so the interactive snippets do not load.
+
 In the fresh shell:
 
 - type `git`, press Up → prefix history search
 - press Tab → menu-complete
 - prompt shows the directory, git state, and `❯`
 - `Ctrl-R` → fzf history
-- `ff` → bat preview (after `bat` is installed)
+- `ff` → bat preview (`bat` is installed in the current setup)
+- `MANPAGER` opens man pages through `bat`
 - `tmux-keybindings --print | less -R` and tmux `prefix ?` → annotated keys
