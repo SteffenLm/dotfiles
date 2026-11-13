@@ -167,9 +167,15 @@ else
 fi
 
 if [ -e "$sbx/.config/opencode/tui.json" ]; then
-  ck "opencode tui config stowed" "present" "present"
+  ck "opencode tui config not stowed" "absent" "present"
 else
-  ck "opencode tui config stowed" "present" "missing"
+  ck "opencode tui config not stowed" "absent" "absent"
+fi
+
+if [ -e "$sbx/.config/opencode/cli.json" ]; then
+  ck "opencode cli config not stowed" "absent" "present"
+else
+  ck "opencode cli config not stowed" "absent" "absent"
 fi
 
 if [ -e "$sbx/.config/opencode/themes/retro-82.json" ]; then
@@ -178,14 +184,18 @@ else
   ck "opencode theme stowed" "present" "missing"
 fi
 
-o=$(jq -e . "$sbx/.config/opencode/tui.json" >/dev/null 2>&1 && printf ok || printf bad)
-ck "opencode tui config valid JSON" "ok" "$o"
+cli=$REPO/opencode/.config/opencode/cli.json
+o=$(jq -e . "$cli" >/dev/null 2>&1 && printf ok || printf bad)
+ck "opencode cli snapshot valid JSON" "ok" "$o"
+
+o=$(jq -r '.["$schema"]' "$cli" 2>/dev/null)
+ck "opencode cli snapshot schema" "https://opencode.ai/v2/cli.json" "$o"
+
+o=$(jq -r '.theme.name' "$cli" 2>/dev/null)
+ck "opencode cli theme pinned" "retro-82" "$o"
 
 o=$(jq -e . "$sbx/.config/opencode/themes/retro-82.json" >/dev/null 2>&1 && printf ok || printf bad)
 ck "opencode theme valid JSON" "ok" "$o"
-
-o=$(jq -r '.theme' "$sbx/.config/opencode/tui.json" 2>/dev/null)
-ck "opencode theme pinned" "retro-82" "$o"
 
 o=$(jq -r 'has("defs") and has("theme")' "$sbx/.config/opencode/themes/retro-82.json" 2>/dev/null)
 ck "opencode theme uses v1 format" "true" "$o"

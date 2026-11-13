@@ -16,7 +16,7 @@ dotfiles/
 ├── eza/ zoxide/ fzf/               # eza aliases, zoxide init/cd, fzf keys
 ├── tmux/                           # app config package
 ├── nix/                            # nix.conf + nix profile snippet
-├── opencode/                       # tui.json + retro-82 theme
+├── opencode/                       # cli.json snapshot + retro-82 theme
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
 ├── install.sh                      # package install + one-time stow helper
@@ -33,7 +33,12 @@ For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
 `shell/.inputrc` → `~/.inputrc`,
 `zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`,
 `nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf`, and
-`opencode/.config/opencode/tui.json` → `~/.config/opencode/tui.json`.
+`opencode/.config/opencode/themes/retro-82.json` →
+`~/.config/opencode/themes/retro-82.json`. The tracked
+`opencode/.config/opencode/cli.json` is deliberately **not** stowed: v2
+rewrites it with a temp file + `rename()`, so it must stay a real file.
+`opencode/.stow-local-ignore` excludes it, and `install.sh` seeds it from the
+snapshot only when it is missing.
 
 ### Correct stow commands
 
@@ -297,10 +302,11 @@ package database for repo packages. It exits non-zero if anything is missing.
 4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
    `~/.inputrc`, `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
    `~/.config/starship.toml`, `~/.config/nix/nix.conf`,
-   `~/.config/opencode/tui.json`,
    `~/.config/opencode/themes/retro-82.json`, and
    `~/.config/dotfiles/pkg-backend.sh` to `~/.dotfiles-backup-<timestamp>/`,
-   skipping symlinks that already point at the current repo;
+   skipping symlinks that already point at the current repo, then removes a
+   stale `~/.config/opencode/tui.json` symlink into the repo and seeds
+   `~/.config/opencode/cli.json` from the tracked snapshot when it is missing;
 5. refuses to stow while `~/.profile.d` is still a whole-folder symlink, then
    stows `shell tmux starship pkg mise eza zoxide fzf nix opencode <distro>`
    with `--no-folding`.

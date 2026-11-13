@@ -121,7 +121,6 @@ backup_existing() {
     "$HOME/.config/tmux/tmux.conf" \
     "$HOME/.config/starship.toml" \
     "$HOME/.config/nix/nix.conf" \
-    "$HOME/.config/opencode/tui.json" \
     "$HOME/.config/opencode/themes/retro-82.json" \
     "$HOME/.config/dotfiles/pkg-backend.sh"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
@@ -155,6 +154,26 @@ backup_existing() {
 }
 
 backup_existing
+
+# cli.json is global-only and v2 rewrites it with a temp file + rename(), so it
+# must stay a real file. Seed it from the tracked snapshot only when missing.
+opencode_tui="$HOME/.config/opencode/tui.json"
+if [ -L "$opencode_tui" ]; then
+  opencode_tui_target=$(readlink -f -- "$opencode_tui" 2>/dev/null || true)
+  case $opencode_tui_target in
+    "$REPO"/*) run rm -f "$opencode_tui" ;;
+  esac
+fi
+
+opencode_cli="$HOME/.config/opencode/cli.json"
+if [ -L "$opencode_cli" ]; then
+  run rm -f "$opencode_cli"
+fi
+if [ ! -e "$opencode_cli" ] &&
+  [ -f "$REPO/opencode/.config/opencode/cli.json" ]; then
+  run install -Dm600 "$REPO/opencode/.config/opencode/cli.json" \
+    "$opencode_cli"
+fi
 
 if [ -L "$HOME/.profile.d" ]; then
   printf 'install.sh: %s is a symlink; it must be a real directory before stowing nix\n' \

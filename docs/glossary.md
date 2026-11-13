@@ -39,11 +39,13 @@ Terms used across this repo's docs.
 - **`fzf`** — the package with two snippets: `~/.bashrc.d/fzf` loads the
   Ctrl-R/Ctrl-T/Alt-C key bindings, and `~/.alias.d/ff` adds the Omarchy `ff`,
   `eff`, and `sff()` helpers when both `fzf` and `bat` are present.
-- **`opencode`** — the package that pins opencode's TUI theme. It tracks
-  `~/.config/opencode/tui.json` (theme `retro-82`) and
-  `~/.config/opencode/themes/retro-82.json`, a v1-format theme built from the
-  Omarchy/`retro-82.nvim` Retro '82 palette. `opencode.json` is user-managed
-  and not tracked.
+- **`opencode`** — the package that pins opencode's TUI configuration and theme.
+  It tracks `~/.config/opencode/themes/retro-82.json`, a v1-format theme built
+  from the Omarchy/`retro-82.nvim` Retro '82 palette, and a snapshot of
+  `~/.config/opencode/cli.json` (`$schema` v2, theme `retro-82`). `cli.json` is
+  global-only and v2 rewrites it with a temp file + `rename()`, so it is
+  deliberately not stowed (see `opencode/.stow-local-ignore`); `install.sh`
+  seeds it only when missing. `opencode.json` is user-managed and not tracked.
 - **`bat`** — the syntax-highlighting pager used by `ff` previews and
   `MANPAGER`. Ubuntu installs the binary as `batcat`, so the Ubuntu backend
   links `~/.local/bin/bat` to it. `tldr` is intentionally not installed.
