@@ -21,13 +21,25 @@ Terms used across this repo's docs.
 - **`mise`** — the runtime-manager package. `~/.bashrc.d/mise` runs
   `mise activate bash` (after `set +h`), and
   `~/.config/mise/config.toml` holds the tracked global `[tools]` versions
-  (Node `26.13.1` and Temurin JDK `21.0.13+9.0.LTS`; activation also exports
-  `JAVA_HOME`). Skipped when `mise` is absent.
+  (Node `26.13.1`, Temurin JDK `21.0.13+9.0.LTS`, and Rust `stable`; activation
+  also exports `JAVA_HOME`). Its
+  `idiomatic_version_file_enable_tools = ["rust"]` setting makes mise read
+  project `rust-toolchain.toml` pins. Skipped when `mise` is absent.
 - **`eza`** — the alias package (`~/.alias.d/eza`) that maps `ls`, `lsa`, `lt`,
   and `lta` to Omarchy's exact `eza` definitions. Skipped when `eza` is absent.
 - **`zoxide`** — the package with two snippets: `~/.bashrc.d/zoxide` runs
   `zoxide init bash` (defining `z` and `zi`), and `~/.alias.d/zoxide` defines
   the `zd` function plus `alias cd="zd"`. Skipped when `zoxide` is absent.
+- **`fzf`** — the package with two snippets: `~/.bashrc.d/fzf` loads the
+  Ctrl-R/Ctrl-T/Alt-C key bindings, and `~/.alias.d/ff` adds the Omarchy `ff`,
+  `eff`, and `sff()` helpers when both `fzf` and `bat` are present.
+- **`bat`** — the syntax-highlighting pager used by `ff` previews and
+  `MANPAGER`. Ubuntu installs the binary as `batcat`, so the Ubuntu backend
+  links `~/.local/bin/bat` to it. `tldr` is intentionally not installed.
+- **`inputrc`** — `shell/.inputrc`, stowed to `~/.inputrc`. Readline
+  configuration read directly by Bash and other Readline programs: prefix
+  history search on Up/Down, Tab menu-complete, case-insensitive completion,
+  and colored completion listings.
 - **`install.sh`** — the one-shot installer: `./install.sh <distro>`. Installs
   `packages.list`, backs up real shell/tmux files once, then stows the shared
   packages plus the chosen distro package. Supports `--dry-run` and
@@ -43,10 +55,16 @@ Terms used across this repo's docs.
   `C-b` available as the secondary prefix (`prefix2`); composite bindings read
   like `prefix + q`.
 - **tmux config** — `tmux/.config/tmux/tmux.conf`, stowed to
-  `~/.config/tmux/tmux.conf`. It is a verbatim copy of Omarchy's
-  `config/tmux/tmux.conf`, including upstream's status/border theme; there are
-  no plugins or local patches. Upstream is the source of truth: refresh the
-  repo copy by copying the upstream file into the repo, then restow if needed.
+  `~/.config/tmux/tmux.conf`. It follows Omarchy's `config/tmux/tmux.conf`
+  (prefix, keybindings, status/border theme) with two local adaptations: a
+  tmux < 3.5 guard around `extended-keys-format csi-u` and a `?` binding that
+  runs `tmux-keybindings`. There are no plugins or local theme patches.
+- **`tmux-keybindings`** — `tmux/.local/bin/tmux-keybindings`, stowed to
+  `~/.local/bin/tmux-keybindings`. A standalone port of Omarchy's
+  `omarchy-menu-tmux-keybindings`: starts a throwaway tmux server, clears the
+  key tables, sources the config, and prints annotated lines such as
+  `PREFIX + q → Reload configuration`. Use `--print` for stdout; no
+  `omarchy-*` binary is required.
 - **copy-mode** — tmux's scrollback/text-selection mode (`prefix + [`), here
   configured with vi-style keys.
 - **worktree / worktrees** — git worktrees, used to run parallel agent
@@ -65,3 +83,6 @@ Terms used across this repo's docs.
   files (proxies, CAs, local aliases, local user names) that must not be
   committed. Wired into the loaders via symlinks. See
   [loader-system.md](./loader-system.md).
+- **Omarchy parity** — [omarchy-parity.md](./omarchy-parity.md), the map of
+  which Omarchy `quattro` shell/tmux files are copied, adapted, or skipped for
+  SSH terminal use. Desktop/Hyprland and `omarchy-*` binaries are out of scope.

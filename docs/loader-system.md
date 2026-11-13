@@ -24,8 +24,11 @@ dotfiles/
 ```
 
 For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
+`tmux/.local/bin/tmux-keybindings` → `~/.local/bin/tmux-keybindings`,
 `starship/.bashrc.d/starship` → `~/.bashrc.d/starship`,
-`mise/.config/mise/config.toml` → `~/.config/mise/config.toml`, and
+`starship/.config/starship.toml` → `~/.config/starship.toml`,
+`mise/.config/mise/config.toml` → `~/.config/mise/config.toml`,
+`shell/.inputrc` → `~/.inputrc`, and
 `zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`.
 
 ### Correct stow commands
@@ -127,6 +130,24 @@ falling back to `/usr/share/doc/fzf/examples/key-bindings.bash` (Ubuntu). The
 `eza` alias block (`ls`, `lsa`, `lt`, `lta`) lives in `~/.alias.d/eza`, and
 `~/.alias.d/zoxide` supplies the Omarchy `zd` wrapper plus `alias cd="zd"`.
 
+Starship uses `starship init bash --print-full-init` and reads
+`~/.config/starship.toml`, so the prompt matches Omarchy's directory, git, and
+`❯` layout.
+
+Readline behavior is not a loader snippet: `~/.inputrc` is read directly by
+Bash (and other Readline programs). It turns Up/Down into prefix history
+search, Tab into menu-complete, and enables colored, case-insensitive
+completion. History (`~/.bashrc.d/history`) and completion
+(`~/.bashrc.d/completion`) are split out of Omarchy's `default/bash/shell`.
+`~/.bashrc.d/env` holds interactive environment variables (`EDITOR`,
+`BROWSER`, `BAT_THEME`, `MANROFFOPT`, guarded `MANPAGER`), and
+`~/.bashrc.d/functions` defines `open()` and `n()`.
+
+The portable Omarchy aliases live in `~/.alias.d/omarchy`; `ff`, `eff`, and
+`sff()` live in `~/.alias.d/ff` and are only defined when both `fzf` and `bat`
+are installed. See [omarchy-parity.md](./omarchy-parity.md) for the
+copied/adapted/skipped map.
+
 ### eza icons need a Nerd Font
 
 `ls`, `lsa`, `lt`, and `lta` pass `--icons`, so they only render correctly when
@@ -158,17 +179,26 @@ point the same way.
 └── ...   (machine-specific only; see custom/ below)
 
 ~/.bashrc.d/
-├── fzf      -> ../dotfiles/fzf/.bashrc.d/fzf
-├── mise     -> ../dotfiles/mise/.bashrc.d/mise
-├── pkg      -> ../dotfiles/pkg/.bashrc.d/pkg
-├── starship -> ../dotfiles/starship/.bashrc.d/starship
-└── zoxide   -> ../dotfiles/zoxide/.bashrc.d/zoxide
+├── completion -> ../dotfiles/shell/.bashrc.d/completion
+├── env        -> ../dotfiles/shell/.bashrc.d/env
+├── functions  -> ../dotfiles/shell/.bashrc.d/functions
+├── fzf        -> ../dotfiles/fzf/.bashrc.d/fzf
+├── history    -> ../dotfiles/shell/.bashrc.d/history
+├── mise       -> ../dotfiles/mise/.bashrc.d/mise
+├── pkg        -> ../dotfiles/pkg/.bashrc.d/pkg
+├── starship   -> ../dotfiles/starship/.bashrc.d/starship
+└── zoxide     -> ../dotfiles/zoxide/.bashrc.d/zoxide
 
 ~/.alias.d/
 ├── eza       -> ../dotfiles/eza/.alias.d/eza
+├── ff        -> ../dotfiles/fzf/.alias.d/ff
+├── omarchy   -> ../dotfiles/shell/.alias.d/omarchy
 ├── update-os -> ../dotfiles/ubuntu/.alias.d/update-os
 └── zoxide    -> ../dotfiles/zoxide/.alias.d/zoxide
 ```
+
+`~/.inputrc` is stowed directly from `shell/.inputrc`; it is not part of the
+manifold loader. `~/.config/starship.toml` comes from the `starship` package.
 
 The loader sources everything in each directory, so each tool's snippet is
 loaded automatically at shell startup — no per-tool edits to the loaders.
@@ -220,6 +250,11 @@ Each backend owns:
   `_pkg_present`.
 - A sudo-or-root helper, plus dry-run support (`PKG_DRY_RUN=1`).
 
+Ubuntu's `bat` package installs the binary as `batcat`; the backend links
+`~/.local/bin/bat` to it, mirroring the `fd` → `fdfind` shim. This keeps
+Omarchy's `ff` alias working without a `PKG_MAP` entry. `yt-dlp` is part of
+`packages.list`; `tldr` is intentionally excluded.
+
 `pkg update` syncs package state before an install. Ubuntu refreshes apt
 indexes; CachyOS runs `pacman -Syu` (so installing does not leave a partial
 upgrade); Omarchy runs `omarchy-update`.
@@ -246,9 +281,10 @@ package database for repo packages. It exits non-zero if anything is missing.
 3. installs `stow` (needed for the next step) and every entry in
    `packages.list`;
 4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
-   `~/.tmux.conf`, `~/.config/tmux/tmux.conf`, and
-   `~/.config/dotfiles/pkg-backend.sh` to `~/.dotfiles-backup-<timestamp>/`,
-   skipping symlinks that already point at the current repo;
+   `~/.inputrc`, `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
+   `~/.config/starship.toml`, and `~/.config/dotfiles/pkg-backend.sh` to
+   `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
+   the current repo;
 5. stows `shell tmux starship pkg mise eza zoxide fzf <distro>` with
    `--no-folding`.
 
@@ -300,10 +336,14 @@ custom/
 
 Language runtimes are owned by mise, not by `custom/`. The committed `mise`
 package carries the global tool versions in
-`mise/.config/mise/config.toml` (Node `26.13.1` and Temurin JDK
-`21.0.13+9.0.LTS`); machine-specific overrides, if ever needed, belong in
-`custom/`. Rust (rustup) is still managed outside mise; the apt OpenJDK 21 JRE
-is retained for OS packages even though mise's JDK wins on `PATH`.
+`mise/.config/mise/config.toml` (Node `26.13.1`, Temurin JDK
+`21.0.13+9.0.LTS`, and Rust's `stable` channel); machine-specific overrides, if
+ever needed, belong in `custom/`. Rust runs through rustup, which mise reuses at
+`~/.rustup`/`~/.cargo`; `idiomatic_version_file_enable_tools = ["rust"]` makes
+mise read a project's `rust-toolchain.toml`, so project pins win over the global
+`stable` channel and are installed on demand (`.nvmrc` remains ignored). The apt
+OpenJDK 21 JRE is retained for OS packages even though mise's JDK wins on
+`PATH`.
 
 ### How `custom/` reaches the loaders
 

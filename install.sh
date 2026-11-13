@@ -116,8 +116,10 @@ backup_existing() {
   backup_dir="$HOME/.dotfiles-backup-$timestamp"
 
   for file in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.bash_profile" \
+    "$HOME/.inputrc" \
     "$HOME/.tmux.conf" \
     "$HOME/.config/tmux/tmux.conf" \
+    "$HOME/.config/starship.toml" \
     "$HOME/.config/dotfiles/pkg-backend.sh"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
 

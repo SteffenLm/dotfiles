@@ -170,6 +170,22 @@ _pkg_link_fd() {
   ln -sfn "$source" "$HOME/.local/bin/fd"
 }
 
+_pkg_link_bat() {
+  local source
+
+  if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+    source=$(command -v batcat || printf '/usr/bin/batcat')
+    printf 'DRY: ln -sfn %q %q\n' "$source" "$HOME/.local/bin/bat"
+    return 0
+  fi
+
+  source=$(command -v batcat || true)
+  [ -n "$source" ] || return 0
+
+  mkdir -p "$HOME/.local/bin" || return 1
+  ln -sfn "$source" "$HOME/.local/bin/bat"
+}
+
 _pkg_remove_special() {
   local name=$1
 
@@ -189,6 +205,7 @@ _pkg_install() {
 
   local name native
   local fd_requested=0
+  local bat_requested=0
   local -a natives=()
   local -a specials=()
 
@@ -201,6 +218,7 @@ _pkg_install() {
         native=$(_pkg_native_name "$name")
         natives+=("$native")
         [ "$name" = fd ] && fd_requested=1
+        [ "$name" = bat ] && bat_requested=1
         ;;
     esac
   done
@@ -223,6 +241,10 @@ _pkg_install() {
   if [ "$fd_requested" = 1 ]; then
     _pkg_link_fd
   fi
+
+  if [ "$bat_requested" = 1 ]; then
+    _pkg_link_bat
+  fi
 }
 
 _pkg_remove() {
@@ -233,6 +255,7 @@ _pkg_remove() {
 
   local name
   local fd_requested=0
+  local bat_requested=0
   local -a natives=()
   local -a specials=()
 
@@ -244,6 +267,7 @@ _pkg_remove() {
       *)
         natives+=("$(_pkg_native_name "$name")")
         [ "$name" = fd ] && fd_requested=1
+        [ "$name" = bat ] && bat_requested=1
         ;;
     esac
   done
@@ -258,6 +282,10 @@ _pkg_remove() {
 
   if [ "$fd_requested" = 1 ]; then
     _pkg_remove_special fd
+  fi
+
+  if [ "$bat_requested" = 1 ]; then
+    _pkg_remove_special bat
   fi
 }
 

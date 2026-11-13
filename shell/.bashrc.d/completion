@@ -1,0 +1,6 @@
+# shellcheck shell=bash
+
+if [[ ! -v BASH_COMPLETION_VERSINFO && -f /usr/share/bash-completion/bash_completion ]]; then
+  # shellcheck disable=SC1091
+  source /usr/share/bash-completion/bash_completion
+fi

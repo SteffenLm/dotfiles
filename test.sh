@@ -49,6 +49,13 @@ SH
   chmod +x "$sbx/.local/bin/starship"
 fi
 
+# Mirror the Ubuntu batcat shim so bat-dependent snippets can be exercised.
+if command -v batcat >/dev/null 2>&1; then
+  ln -s "$(command -v batcat)" "$sbx/.local/bin/bat"
+elif command -v bat >/dev/null 2>&1; then
+  ln -s "$(command -v bat)" "$sbx/.local/bin/bat"
+fi
+
 # Extra edge cases for manual/auto checks.
 printf 'export SPACE_OK=1\n' > "$sbx/.bashrc.d/with space"
 ln -s "$sbx/does-not-exist" "$sbx/.bashrc.d/zz-dangling"
@@ -68,9 +75,9 @@ ck() {
     fail=$((fail + 1))
   fi
 }
-run() { HOME="$sbx" PATH="$TEST_PATH" "$@" 2>"$sbx/err"; }
+run() { HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" "$@" 2>"$sbx/err"; }
 errs() { grep -vE 'cannot set terminal process group|no job control in this shell' "$sbx/err" 2>/dev/null; }
-tm() { HOME="$sbx" PATH="$TEST_PATH" SHELL=/bin/bash "$TMUX" -L "$TSOCK" "$@"; }
+tm() { HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" SHELL=/bin/bash "$TMUX" -L "$TSOCK" "$@"; }
 
 echo
 echo "--- automatic checks ---"
@@ -143,6 +150,83 @@ o=$(PATH=/usr/bin:/bin HOME="$sbx" SNIPPET="$sbx/.bashrc.d/mise" bash -c '. "$SN
 ck "missing mise is silent" "ok" "$o"
 ck "missing mise stderr clean" "" "$(errs)"
 
+if [ -e "$sbx/.inputrc" ]; then
+  ck "inputrc stowed" "present" "present"
+else
+  ck "inputrc stowed" "present" "missing"
+fi
+
+o=$(run bash -i -c 'bind -v 2>/dev/null | grep -c "^set completion-ignore-case on$"')
+ck "inputrc completion-ignore-case" "1" "$o"
+
+o=$(run bash -i -c 'bind -v 2>/dev/null | grep -c "^set menu-complete-display-prefix on$"')
+ck "inputrc menu-complete-display-prefix" "1" "$o"
+
+o=$(run bash -i -c 'bind -p 2>/dev/null | grep -cF "\"\\e[A\": history-search-backward"')
+ck "inputrc arrow prefix search" "1" "$o"
+
+o=$(run bash -i -c 'printf "%s|%s|%s|%s" "$HISTSIZE" "$HISTCONTROL" "$(shopt -q histappend && echo yes)" "$HISTFILESIZE"')
+ck "history settings" "32768|ignoreboth|yes|32768" "$o"
+
+o=$(run bash -i -c 'printf "%s" "${BASH_COMPLETION_VERSINFO:-}"')
+ck "bash-completion loaded" "yes" "$([ -n "$o" ] && printf yes || printf no)"
+
+if [ -e "$sbx/.config/starship.toml" ]; then
+  ck "starship config stowed" "present" "present"
+else
+  ck "starship config stowed" "present" "missing"
+fi
+
+if command -v starship >/dev/null 2>&1; then
+  o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" starship prompt 2>/dev/null | grep -c '❯' || true)
+  ck "starship prompt renders ❯" "1" "$o"
+fi
+
+editor=$(PATH="$sbx/.local/bin:$TEST_PATH" bash -c 'if command -v nvim >/dev/null 2>&1; then printf nvim; elif command -v vim >/dev/null 2>&1; then printf vim; else printf vi; fi')
+o=$(HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" \
+  EDITOR='' SUDO_EDITOR='' BROWSER='' BAT_THEME='' MANPAGER='' MANROFFOPT='' \
+  bash -i -c 'printf "%s" "${EDITOR:-}"' 2>/dev/null)
+ck "env EDITOR fallback" "$editor" "$o"
+
+if PATH="$TEST_PATH" command -v xdg-open >/dev/null 2>&1; then
+  browser=xdg-open
+else
+  browser=
+fi
+o=$(HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" \
+  EDITOR='' SUDO_EDITOR='' BROWSER='' BAT_THEME='' MANPAGER='' MANROFFOPT='' \
+  bash -i -c 'printf "%s" "${BROWSER:-}"' 2>/dev/null)
+ck "env BROWSER" "$browser" "$o"
+
+o=$(HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" \
+  EDITOR='' SUDO_EDITOR='' BROWSER='' BAT_THEME='' MANPAGER='' MANROFFOPT='' \
+  bash -i -c 'printf "%s|%s" "${BAT_THEME:-}" "${MANROFFOPT:-}"' 2>/dev/null)
+ck "env bat/man settings" "ansi|-c" "$o"
+
+o=$(HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" \
+  EDITOR='' SUDO_EDITOR='' BROWSER='' BAT_THEME='' MANPAGER='' MANROFFOPT='' \
+  bash -i -c 'printf "%s" "${MANPAGER:-}"' 2>/dev/null)
+if [ -e "$sbx/.local/bin/bat" ]; then
+  ck "env MANPAGER uses bat" "sh -c 'col -bx | bat -l man -p'" "$o"
+else
+  ck "env MANPAGER guarded without bat" "" "$o"
+fi
+
+o=$(run bash -i -c 'for a in "g" "gcm" "gcam" "gcad" "mup" "t" ".." "..." "...."; do alias "$a" >/dev/null 2>&1 || exit 1; done; printf yes')
+ck "omarchy aliases present" "yes" "$o"
+
+o=$(run bash -i -c 'type -t open >/dev/null 2>&1 && type -t n >/dev/null 2>&1 && printf yes || printf no')
+ck "functions open/n present" "yes" "$o"
+
+o=$(run bash -i -c 'alias ff >/dev/null 2>&1 && printf yes || printf no')
+if [ -e "$sbx/.local/bin/bat" ]; then
+  ck "ff alias present with bat" "yes" "$o"
+  o=$(run bash -i -c 'alias eff >/dev/null 2>&1 && type -t sff >/dev/null 2>&1 && printf yes || printf no')
+  ck "eff/sff present with bat" "yes" "$o"
+else
+  ck "ff alias guarded without bat" "no" "$o"
+fi
+
 echo
 echo "--- tmux checks (isolated socket: $TSOCK) ---"
 tmux -L "$TSOCK" kill-server 2>/dev/null || true
@@ -165,6 +249,14 @@ ck "tmux: mode-keys vi" "vi" "$(tm show-options -gwv mode-keys 2>/dev/null)"
 ck "tmux: default-terminal" "tmux-256color" "$(tm show-options -gv default-terminal 2>/dev/null)"
 ck "tmux: no plugin declarations" "0" "$(tm show-options -g 2>/dev/null | grep -c '@plugin' || true)"
 ck "tmux: q reloads config" "1" "$(tm list-keys -T prefix q 2>/dev/null | grep -c 'source-file.*config/tmux/tmux.conf' || true)"
+ck "tmux: clipboard terminal feature" "1" "$(tm show-options -gv terminal-features 2>/dev/null | grep -c '^\*:clipboard$' || true)"
+ck "tmux-keybindings executable" "yes" "$([ -x "$sbx/.local/bin/tmux-keybindings" ] && printf yes || printf no)"
+
+o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" tmux-keybindings --print 2>"$sbx/tmk.err" | grep -c 'PREFIX + q' || true)
+ck "tmux-keybindings lists prefix q" "1" "$o"
+
+o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" tmux-keybindings --print 2>/dev/null | grep -c 'Show Tmux keybindings' || true)
+ck "tmux-keybindings includes notes" "1" "$o"
 
 echo
 echo "RESULTS: $pass passed, $fail failed"

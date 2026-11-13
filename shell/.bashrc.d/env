@@ -1,0 +1,24 @@
+# shellcheck shell=bash
+
+if [ -z "${EDITOR:-}" ]; then
+  if command -v nvim >/dev/null 2>&1; then
+    EDITOR="nvim"
+  elif command -v vim >/dev/null 2>&1; then
+    EDITOR="vim"
+  else
+    EDITOR="vi"
+  fi
+fi
+export EDITOR
+export SUDO_EDITOR="${SUDO_EDITOR:-$EDITOR}"
+
+if command -v xdg-open >/dev/null 2>&1; then
+  export BROWSER="${BROWSER:-xdg-open}"
+fi
+
+export BAT_THEME="${BAT_THEME:-ansi}"
+export MANROFFOPT="${MANROFFOPT:--c}"
+
+if command -v bat >/dev/null 2>&1 && command -v col >/dev/null 2>&1; then
+  export MANPAGER="${MANPAGER:-sh -c 'col -bx | bat -l man -p'}"
+fi

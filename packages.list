@@ -12,9 +12,11 @@ build-essential
 mise
 opencode
 fzf
+bat
 gh
 ripgrep
 fd
 btop
 zoxide
 eza
+yt-dlp

@@ -1,0 +1,16 @@
+# shellcheck shell=bash
+
+# Directories
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+# Tools
+alias t='tmux attach || tmux new -s Work'
+alias mup='MISE_MINIMUM_RELEASE_AGE=0 mise up'
+
+# Git
+alias g='git'
+alias gcm='git commit -m'
+alias gcam='git commit -a -m'
+alias gcad='git commit -a --amend'

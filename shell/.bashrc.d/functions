@@ -1,0 +1,13 @@
+# shellcheck shell=bash
+
+open() (
+  xdg-open "$@" >/dev/null 2>&1 &
+)
+
+n() {
+  if [ "$#" -eq 0 ]; then
+    command nvim .
+  else
+    command nvim "$@"
+  fi
+}
