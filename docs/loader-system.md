@@ -16,6 +16,7 @@ dotfiles/
 ├── eza/ zoxide/ fzf/               # eza aliases, zoxide init/cd, fzf keys
 ├── tmux/                           # app config package
 ├── nix/                            # nix.conf + nix profile snippet
+├── opencode/                       # tui.json + retro-82 theme
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
 ├── install.sh                      # package install + one-time stow helper
@@ -30,8 +31,9 @@ For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
 `starship/.config/starship.toml` → `~/.config/starship.toml`,
 `mise/.config/mise/config.toml` → `~/.config/mise/config.toml`,
 `shell/.inputrc` → `~/.inputrc`,
-`zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`, and
-`nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf`.
+`zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`,
+`nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf`, and
+`opencode/.config/opencode/tui.json` → `~/.config/opencode/tui.json`.
 
 ### Correct stow commands
 
@@ -47,7 +49,8 @@ stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's lay
 ```
 
 Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`,
-`zoxide`, `fzf`, and `nix`. Distro package names are `ubuntu`, `cachyos`, and `omarchy`;
+`zoxide`, `fzf`, `nix`, and `opencode`. Distro package names are `ubuntu`,
+`cachyos`, and `omarchy`;
 stow **exactly one** of them.
 To switch distros, unstow the old package first (`stow -D ubuntu`), because all
 distro packages provide the same backend and `update-os` paths.
@@ -64,7 +67,7 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode ubuntu
 ```
 
 `install.sh <distro>` runs that command for you after installing tools. It also
@@ -290,12 +293,14 @@ package database for repo packages. It exits non-zero if anything is missing.
    `packages.list`;
 4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
    `~/.inputrc`, `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
-   `~/.config/starship.toml`, `~/.config/nix/nix.conf`, and
+   `~/.config/starship.toml`, `~/.config/nix/nix.conf`,
+   `~/.config/opencode/tui.json`,
+   `~/.config/opencode/themes/retro-82.json`, and
    `~/.config/dotfiles/pkg-backend.sh` to `~/.dotfiles-backup-<timestamp>/`,
    skipping symlinks that already point at the current repo;
 5. refuses to stow while `~/.profile.d` is still a whole-folder symlink, then
-   stows `shell tmux starship pkg mise eza zoxide fzf nix <distro>` with
-   `--no-folding`.
+   stows `shell tmux starship pkg mise eza zoxide fzf nix opencode <distro>`
+   with `--no-folding`.
 
 Options: `--dry-run` prints every package/backup/stow command without running
 it; `--no-stow` installs tools but stops before backup and stow. The script

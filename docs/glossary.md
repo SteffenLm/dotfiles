@@ -3,7 +3,8 @@
 Terms used across this repo's docs.
 
 - **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
-  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `nix`, `ubuntu`) that mirrors
+  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `fzf`, `nix`, `opencode`,
+  `ubuntu`) that mirrors
   home-directory paths. Install with `cd ~/dotfiles && stow <pkg>` (run stow
   from inside the repo with the bare package name — `stow` rejects slashes, so
   not `stow dotfiles/tmux`). See [loader-system.md](./loader-system.md).
@@ -38,6 +39,11 @@ Terms used across this repo's docs.
 - **`fzf`** — the package with two snippets: `~/.bashrc.d/fzf` loads the
   Ctrl-R/Ctrl-T/Alt-C key bindings, and `~/.alias.d/ff` adds the Omarchy `ff`,
   `eff`, and `sff()` helpers when both `fzf` and `bat` are present.
+- **`opencode`** — the package that pins opencode's TUI theme. It tracks
+  `~/.config/opencode/tui.json` (theme `retro-82`) and
+  `~/.config/opencode/themes/retro-82.json`, a v1-format theme built from the
+  Omarchy/`retro-82.nvim` Retro '82 palette. `opencode.json` is user-managed
+  and not tracked.
 - **`bat`** — the syntax-highlighting pager used by `ff` previews and
   `MANPAGER`. Ubuntu installs the binary as `batcat`, so the Ubuntu backend
   links `~/.local/bin/bat` to it. `tldr` is intentionally not installed.

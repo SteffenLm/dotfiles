@@ -62,7 +62,7 @@ ln -s "$sbx/does-not-exist" "$sbx/.bashrc.d/zz-dangling"
 
 cd "$REPO" || exit 1
 echo "stowing into $sbx ..."
-"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix ubuntu || exit 1
+"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix opencode ubuntu || exit 1
 
 pass=0
 fail=0
@@ -165,6 +165,30 @@ if [ -e "$sbx/.config/nix/nix.conf" ]; then
 else
   ck "nix config stowed" "present" "missing"
 fi
+
+if [ -e "$sbx/.config/opencode/tui.json" ]; then
+  ck "opencode tui config stowed" "present" "present"
+else
+  ck "opencode tui config stowed" "present" "missing"
+fi
+
+if [ -e "$sbx/.config/opencode/themes/retro-82.json" ]; then
+  ck "opencode theme stowed" "present" "present"
+else
+  ck "opencode theme stowed" "present" "missing"
+fi
+
+o=$(jq -e . "$sbx/.config/opencode/tui.json" >/dev/null 2>&1 && printf ok || printf bad)
+ck "opencode tui config valid JSON" "ok" "$o"
+
+o=$(jq -e . "$sbx/.config/opencode/themes/retro-82.json" >/dev/null 2>&1 && printf ok || printf bad)
+ck "opencode theme valid JSON" "ok" "$o"
+
+o=$(jq -r '.theme' "$sbx/.config/opencode/tui.json" 2>/dev/null)
+ck "opencode theme pinned" "retro-82" "$o"
+
+o=$(jq -r 'has("defs") and has("theme")' "$sbx/.config/opencode/themes/retro-82.json" 2>/dev/null)
+ck "opencode theme uses v1 format" "true" "$o"
 
 if [ -e "$sbx/.inputrc" ]; then
   ck "inputrc stowed" "present" "present"

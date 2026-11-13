@@ -68,6 +68,8 @@ Deliberately skipped:
   `bat`.
 - `yt-dlp` is in `packages.list`.
 - `tldr` is intentionally excluded.
+- The opencode theme (`opencode/.config/opencode/themes/retro-82.json`) derives
+  from Omarchy's Retro '82 palette.
 
 ## tmux
 

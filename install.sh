@@ -121,6 +121,8 @@ backup_existing() {
     "$HOME/.config/tmux/tmux.conf" \
     "$HOME/.config/starship.toml" \
     "$HOME/.config/nix/nix.conf" \
+    "$HOME/.config/opencode/tui.json" \
+    "$HOME/.config/opencode/themes/retro-82.json" \
     "$HOME/.config/dotfiles/pkg-backend.sh"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
 
@@ -165,7 +167,7 @@ if [ -L "$HOME/.profile.d" ]; then
 fi
 
 cd "$REPO"
-run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix "$distro"
+run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode "$distro"
 
 if [ "$dry_run" = 0 ]; then
   cat <<'EOF'
