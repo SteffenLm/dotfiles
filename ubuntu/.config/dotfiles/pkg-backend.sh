@@ -11,12 +11,16 @@ declare -gA PKG_METHOD=(
   [mise]=installer
   [nix]=installer
   [opencode]=github
+  [neovim]=github
+  [kubectl]=installer
 )
 
 STARSHIP_VERSION=v1.27.0
 MISE_VERSION=v2026.11.7
 NIX_VERSION=2.35.1
 OPENCODE_VERSION=v1.19.5
+NEOVIM_VERSION=v0.12.6
+KUBECTL_VERSION=v1.37.2
 
 _pkg_sudo() {
   if [ "$(id -u)" -eq 0 ]; then
@@ -51,9 +55,30 @@ _pkg_native_name() {
 }
 
 _pkg_install_github() {
-  local name=$1 version asset base tmp checksum
+  local name=$1 version asset base tmp checksum target neovim_dir opt_dir
 
   case $name in
+    neovim)
+      version=$NEOVIM_VERSION
+      case $(uname -m) in
+        x86_64 | amd64)
+          asset=nvim-linux-x86_64.tar.gz
+          neovim_dir=nvim-linux-x86_64
+          checksum=474430d53e6264f6d6dd18db42d6dc9df3a1b56ca9e88a325bbf860e1a811d87
+          ;;
+        aarch64 | arm64)
+          asset=nvim-linux-arm64.tar.gz
+          neovim_dir=nvim-linux-arm64
+          checksum=8f1f64a0bdb97247034038c3823c6cbad5bdf9ecd5751b85494b71c3ee04c815
+          ;;
+        *)
+          printf 'pkg: neovim: unsupported architecture: %s\n' "$(uname -m)" >&2
+          return 1
+          ;;
+      esac
+      base=https://github.com/neovim/neovim/releases/download/$version
+      target=$HOME/.local/bin/nvim
+      ;;
     starship)
       version=$STARSHIP_VERSION
       case $(uname -m) in
@@ -96,7 +121,7 @@ _pkg_install_github() {
 
   if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
     printf 'DRY: install %s %s from %s/%s (sha256 verified) into %s\n' \
-      "$name" "$version" "$base" "$asset" "$HOME/.local/bin/$name"
+      "$name" "$version" "$base" "$asset" "${target:-$HOME/.local/bin/$name}"
     return 0
   fi
 
@@ -126,6 +151,25 @@ _pkg_install_github() {
     rm -rf "$tmp"
     return 1
   }
+  if [ -n "$neovim_dir" ]; then
+    opt_dir=$HOME/.local/opt/nvim-${version#v}
+    mkdir -p "$HOME/.local/opt" || {
+      rm -rf "$tmp"
+      return 1
+    }
+    if ! tar -xzf "$tmp/$asset" -C "$tmp"; then
+      rm -rf "$tmp"
+      return 1
+    fi
+    rm -rf "$opt_dir"
+    if ! mv "$tmp/$neovim_dir" "$opt_dir" ||
+      ! ln -sfn "$opt_dir/bin/nvim" "$target"; then
+      rm -rf "$tmp"
+      return 1
+    fi
+    rm -rf "$tmp"
+    return 0
+  fi
   if ! tar -xzf "$tmp/$asset" -C "$tmp" ||
     ! install -m 0755 "$tmp/$name" "$HOME/.local/bin/$name"; then
     rm -rf "$tmp"
@@ -136,7 +180,7 @@ _pkg_install_github() {
 }
 
 _pkg_install_installer() {
-  local name=$1
+  local name=$1 arch checksum tmp
 
   case $name in
     mise)
@@ -156,6 +200,46 @@ _pkg_install_installer() {
       fi
       curl -fsSL "https://releases.nixos.org/nix/nix-$NIX_VERSION/install" |
         sh -s -- --no-daemon --no-modify-profile
+      ;;
+    kubectl)
+      case $(uname -m) in
+        x86_64 | amd64)
+          arch=amd64
+          checksum=c04487523e7aa7d1493f7808174c899db93d7a9cf57531420cd76b9bd415f8f4
+          ;;
+        aarch64 | arm64)
+          arch=arm64
+          checksum=fcc16f63186659d9722014b7e02d5fdd2d4e669cb8c0ab66365d7d3b8ba03509
+          ;;
+        *)
+          printf 'pkg: kubectl: unsupported architecture: %s\n' "$(uname -m)" >&2
+          return 1
+          ;;
+      esac
+      if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+        printf 'DRY: install kubectl %s (%s) from dl.k8s.io into %s\n' \
+          "$KUBECTL_VERSION" "$arch" "$HOME/.local/bin/kubectl"
+        return 0
+      fi
+      tmp=$(mktemp -d) || return 1
+      if ! curl -fsSL -o "$tmp/kubectl" \
+        "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/$arch/kubectl"; then
+        rm -rf "$tmp"
+        return 1
+      fi
+      if ! (cd "$tmp" && printf '%s  kubectl\n' "$checksum" | sha256sum -c -); then
+        rm -rf "$tmp"
+        return 1
+      fi
+      mkdir -p "$HOME/.local/bin" || {
+        rm -rf "$tmp"
+        return 1
+      }
+      if ! install -m 0755 "$tmp/kubectl" "$HOME/.local/bin/kubectl"; then
+        rm -rf "$tmp"
+        return 1
+      fi
+      rm -rf "$tmp"
       ;;
     *)
       printf 'pkg: no standalone installer for %s\n' "$name" >&2
@@ -218,6 +302,22 @@ _pkg_remove_special() {
         _pkg_sudo rm -rf -- /nix || return
       fi
       rm -rf "${nix_paths[@]}"
+      ;;
+    neovim)
+      if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+        printf 'DRY: rm -f %q; rm -rf %q\n' \
+          "$HOME/.local/bin/nvim" "$HOME/.local/opt/nvim-*"
+        return 0
+      fi
+      rm -f "$HOME/.local/bin/nvim"
+      rm -rf "$HOME/.local/opt"/nvim-*
+      ;;
+    kubectl)
+      if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+        printf 'DRY: rm -f %q\n' "$HOME/.local/bin/kubectl"
+        return 0
+      fi
+      rm -f "$HOME/.local/bin/kubectl"
       ;;
     *)
       if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
@@ -350,6 +450,17 @@ _pkg_present() {
   for name in "$@"; do
     if [ "$name" = nix ]; then
       if [ -x "$HOME/.nix-profile/bin/nix" ]; then
+        printf '%s: installed\n' "$name"
+      else
+        printf '%s: missing\n' "$name"
+        rc=1
+      fi
+      continue
+    fi
+
+    if [ "$name" = neovim ]; then
+      if command -v nvim >/dev/null 2>&1 ||
+        [ -x "$HOME/.local/bin/nvim" ]; then
         printf '%s: installed\n' "$name"
       else
         printf '%s: missing\n' "$name"

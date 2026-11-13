@@ -166,8 +166,9 @@ font: SSH transmits the glyphs and the client renders them.
 
 Both entry points prepend `$HOME/.local/bin` to `PATH` with a guard, so the
 directory appears exactly once. This is where Ubuntu gets standalone tools that
-are not in apt (`starship`, `mise`, `opencode`) and where the `fd` shim is
-created.
+are not in apt (`starship`, `mise`, `opencode`, `neovim`, `kubectl`) and where
+the `fd` shim is created. Neovim is unpacked under `~/.local/opt` and reached
+through a `~/.local/bin/nvim` symlink.
 
 Distro-provided tools stay in `/usr/bin`; `~/.local/bin` only fills the gaps.
 
@@ -180,7 +181,6 @@ named after the tool. Machine-local snippets from `custom/` and
 
 ```
 ~/.profile.d/
-├── brew-path -> ../dotfiles/custom/.profile.d/brew-path
 ├── nix-os    -> ../dotfiles/nix/.profile.d/nix-os
 ├── open-code -> ../.config/dotfiles-local/profile.d/open-code
 └── proxy     -> ../.config/dotfiles-local/profile.d/proxy
@@ -252,11 +252,14 @@ Each backend owns:
   `installer`). Ubuntu uses it for `starship` (pinned GitHub release, SHA-256
   verified), `mise` (official `mise.run` installer, version pinned), `nix`
   (pinned single-user tarball installer with `--no-daemon
-  --no-modify-profile`, so it never edits shell profiles), and `opencode`
-  (pinned GitHub release, SHA-256 verified). On Arch, `opencode` comes from the
-  native `extra` repository instead, so its version can differ. `pkg remove nix`
-  deletes `/nix` and the per-user Nix state but keeps the tracked
-  `~/.config/nix/nix.conf`.
+  --no-modify-profile`, so it never edits shell profiles), `opencode`
+  (pinned GitHub release, SHA-256 verified), `neovim` (pinned GitHub release,
+  SHA-256 verified, unpacked to `~/.local/opt/nvim-<version>` with an `nvim`
+  symlink in `~/.local/bin`), and `kubectl` (pinned `dl.k8s.io` binary, SHA-256
+  verified). On Arch, `opencode`, `neovim`, and `kubectl` come from the native
+  repositories instead, so their versions can differ. `pkg present neovim`
+  checks the `nvim` binary name. `pkg remove nix` deletes `/nix` and the
+  per-user Nix state but keeps the tracked `~/.config/nix/nix.conf`.
 - `_pkg_install`, `_pkg_remove`, `_pkg_update`, `_pkg_upgrade`, `_pkg_search`,
   `_pkg_present`.
 - A sudo-or-root helper, plus dry-run support (`PKG_DRY_RUN=1`).
@@ -346,7 +349,7 @@ directories:
 custom/
 ├── .alias.d/git                 # git-verify on/off
 ├── .archive/zsh_history-*       # old shell history
-├── .profile.d/brew-path         # Homebrew PATH during retirement
+├── .profile.d/                  # (empty, ready for use)
 └── .zshrc.d/                    # (empty, ready for use)
 ```
 
@@ -368,7 +371,6 @@ directories, so `custom` adds **per-file symlinks** named after the snippet:
 
 ```
 ~/.alias.d/git        -> ../dotfiles/custom/.alias.d/git
-~/.profile.d/brew-path -> ../dotfiles/custom/.profile.d/brew-path
 ```
 
 Adding a new machine-specific file = drop it into the matching `custom/`

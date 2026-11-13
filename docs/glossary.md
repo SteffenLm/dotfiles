@@ -94,8 +94,8 @@ Terms used across this repo's docs.
   directory in normal operation; a whole-folder symlink is a legacy state that
   `install.sh` refuses to stow through.
 - **custom package** — the git-ignored `custom/` folder holding non-corporate
-  machine-specific files such as local aliases and `brew-path` that must not be
-  committed. Wired into the manifold directories via per-file symlinks. See
+  machine-specific files such as local aliases that must not be committed.
+  Wired into the manifold directories via per-file symlinks. See
   [loader-system.md](./loader-system.md).
 - **`dotfiles-local`** — `~/.config/dotfiles-local/`, a private directory
   outside the repo for corporate proxy and CA settings. It holds

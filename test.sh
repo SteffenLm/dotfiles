@@ -38,7 +38,7 @@ for f in proxy open-code; do
 done
 printf 'export TEST_PROFILE_D=loaded\n' > "$sbx/.profile.d/00-test"
 
-# Exercise the new ~/.local/bin PATH prepend without depending on brew.
+# Exercise the new ~/.local/bin PATH prepend without a system install.
 if command -v starship >/dev/null 2>&1; then
   ln -s "$(command -v starship)" "$sbx/.local/bin/starship"
 else
