@@ -9,11 +9,13 @@ declare -gA PKG_MAP=(
 declare -gA PKG_METHOD=(
   [starship]=github
   [mise]=installer
+  [nix]=installer
   [opencode]=github
 )
 
 STARSHIP_VERSION=v1.27.0
 MISE_VERSION=v2026.11.7
+NIX_VERSION=2.35.1
 OPENCODE_VERSION=v1.19.5
 
 _pkg_sudo() {
@@ -147,6 +149,14 @@ _pkg_install_installer() {
       curl -fsSL https://mise.run |
         MISE_VERSION="$MISE_VERSION" MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
       ;;
+    nix)
+      if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+        printf 'DRY: install nix %s single-user (no-daemon, no profile edits)\n' "$NIX_VERSION"
+        return 0
+      fi
+      curl -fsSL "https://releases.nixos.org/nix/nix-$NIX_VERSION/install" |
+        sh -s -- --no-daemon --no-modify-profile
+      ;;
     *)
       printf 'pkg: no standalone installer for %s\n' "$name" >&2
       return 1
@@ -189,12 +199,34 @@ _pkg_link_bat() {
 _pkg_remove_special() {
   local name=$1
 
-  if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
-    printf 'DRY: rm -f %q\n' "$HOME/.local/bin/$name"
-    return 0
-  fi
-
-  rm -f "$HOME/.local/bin/$name"
+  case $name in
+    nix)
+      local -a nix_paths=(
+        "$HOME/.nix-profile"
+        "$HOME/.nix-defexpr"
+        "$HOME/.nix-channels"
+        "$HOME/.local/state/nix"
+        "$HOME/.cache/nix"
+      )
+      if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+        printf 'DRY: sudo rm -rf /nix; rm -rf'
+        printf ' %q' "${nix_paths[@]}"
+        printf '\n'
+        return 0
+      fi
+      if [ -e /nix ] || [ -L /nix ]; then
+        _pkg_sudo rm -rf -- /nix || return
+      fi
+      rm -rf "${nix_paths[@]}"
+      ;;
+    *)
+      if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+        printf 'DRY: rm -f %q\n' "$HOME/.local/bin/$name"
+        return 0
+      fi
+      rm -f "$HOME/.local/bin/$name"
+      ;;
+  esac
 }
 
 _pkg_install() {
@@ -316,6 +348,16 @@ _pkg_present() {
   fi
 
   for name in "$@"; do
+    if [ "$name" = nix ]; then
+      if [ -x "$HOME/.nix-profile/bin/nix" ]; then
+        printf '%s: installed\n' "$name"
+      else
+        printf '%s: missing\n' "$name"
+        rc=1
+      fi
+      continue
+    fi
+
     if [ -n "${PKG_METHOD[$name]:-}" ]; then
       if command -v "$name" >/dev/null 2>&1 ||
         [ -x "$HOME/.local/bin/$name" ]; then

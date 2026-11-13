@@ -120,6 +120,7 @@ backup_existing() {
     "$HOME/.tmux.conf" \
     "$HOME/.config/tmux/tmux.conf" \
     "$HOME/.config/starship.toml" \
+    "$HOME/.config/nix/nix.conf" \
     "$HOME/.config/dotfiles/pkg-backend.sh"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
 
@@ -153,8 +154,18 @@ backup_existing() {
 
 backup_existing
 
+if [ -L "$HOME/.profile.d" ]; then
+  printf 'install.sh: %s is a symlink; it must be a real directory before stowing nix\n' \
+    "$HOME/.profile.d" >&2
+  printf 'install.sh: convert it to a manifold directory (see docs/loader-system.md)\n' >&2
+  if [ "$dry_run" = 0 ]; then
+    exit 1
+  fi
+  printf 'install.sh: dry run only; a real run would stop before stow\n' >&2
+fi
+
 cd "$REPO"
-run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf "$distro"
+run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix "$distro"
 
 if [ "$dry_run" = 0 ]; then
   cat <<'EOF'

@@ -30,10 +30,10 @@ trap cleanup EXIT INT TERM
 : > "$sbx/.hushlogin"
 : > "$sbx/.sudo_as_admin_successful"
 
-# Simulate the custom/.profile.d layout without touching live.
+# Simulate the machine-local profile.d snippets without touching live.
 mkdir -p "$sbx/.profile.d" "$sbx/.bashrc.d" "$sbx/.local/bin"
-for f in proxy open-code nix-os; do
-  src="$LIVE/custom/.profile.d/$f"
+for f in proxy open-code; do
+  src="$HOME/.config/dotfiles-local/profile.d/$f"
   [ -f "$src" ] && cp "$src" "$sbx/.profile.d/$f"
 done
 printf 'export TEST_PROFILE_D=loaded\n' > "$sbx/.profile.d/00-test"
@@ -62,7 +62,7 @@ ln -s "$sbx/does-not-exist" "$sbx/.bashrc.d/zz-dangling"
 
 cd "$REPO" || exit 1
 echo "stowing into $sbx ..."
-"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf ubuntu || exit 1
+"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix ubuntu || exit 1
 
 pass=0
 fail=0
@@ -149,6 +149,22 @@ ck "missing starship stderr clean" "" "$(errs)"
 o=$(PATH=/usr/bin:/bin HOME="$sbx" SNIPPET="$sbx/.bashrc.d/mise" bash -c '. "$SNIPPET" && printf ok' 2>"$sbx/err")
 ck "missing mise is silent" "ok" "$o"
 ck "missing mise stderr clean" "" "$(errs)"
+
+o=$(PATH=/usr/bin:/bin HOME="$sbx" SNIPPET="$sbx/.profile.d/nix-os" bash -c '. "$SNIPPET" && printf ok' 2>"$sbx/err")
+ck "missing nix is silent" "ok" "$o"
+ck "missing nix stderr clean" "" "$(errs)"
+
+if [ -e "$sbx/.profile.d/nix-os" ]; then
+  ck "nix profile snippet stowed" "present" "present"
+else
+  ck "nix profile snippet stowed" "present" "missing"
+fi
+
+if [ -e "$sbx/.config/nix/nix.conf" ]; then
+  ck "nix config stowed" "present" "present"
+else
+  ck "nix config stowed" "present" "missing"
+fi
 
 if [ -e "$sbx/.inputrc" ]; then
   ck "inputrc stowed" "present" "present"
@@ -267,7 +283,7 @@ if [ -t 0 ]; then
   echo "Entering interactive bash (non-login). Try these, then 'exit':"
   echo "  echo \$STARSHIP_SHELL                # expect: bash"
   echo "  echo \$TEST_PROFILE_D                # expect: loaded"
-  echo "  echo \$HTTP_PROXY                    # seeded from custom/.profile.d/proxy"
+  echo "  echo \$HTTP_PROXY                    # seeded from ~/.config/dotfiles-local/profile.d/proxy"
   echo "  alias update-os                      # distro-specific pkg upgrade"
   echo "  pkg present jq                       # expect: jq: installed"
   echo "  alias ls                             # expect: eza -lh ..."

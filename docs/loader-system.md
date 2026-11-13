@@ -15,6 +15,7 @@ dotfiles/
 ├── shell/ starship/ pkg/ mise/     # shell loader + shared tool snippets
 ├── eza/ zoxide/ fzf/               # eza aliases, zoxide init/cd, fzf keys
 ├── tmux/                           # app config package
+├── nix/                            # nix.conf + nix profile snippet
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
 ├── install.sh                      # package install + one-time stow helper
@@ -28,8 +29,9 @@ For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
 `starship/.bashrc.d/starship` → `~/.bashrc.d/starship`,
 `starship/.config/starship.toml` → `~/.config/starship.toml`,
 `mise/.config/mise/config.toml` → `~/.config/mise/config.toml`,
-`shell/.inputrc` → `~/.inputrc`, and
-`zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`.
+`shell/.inputrc` → `~/.inputrc`,
+`zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`, and
+`nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf`.
 
 ### Correct stow commands
 
@@ -45,7 +47,7 @@ stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's lay
 ```
 
 Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`,
-`zoxide`, and `fzf`. Distro package names are `ubuntu`, `cachyos`, and `omarchy`;
+`zoxide`, `fzf`, and `nix`. Distro package names are `ubuntu`, `cachyos`, and `omarchy`;
 stow **exactly one** of them.
 To switch distros, unstow the old package first (`stow -D ubuntu`), because all
 distro packages provide the same backend and `update-os` paths.
@@ -62,7 +64,7 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix ubuntu
 ```
 
 `install.sh <distro>` runs that command for you after installing tools. It also
@@ -168,15 +170,17 @@ Distro-provided tools stay in `/usr/bin`; `~/.local/bin` only fills the gaps.
 
 ### The home manifold directories
 
-`~/.bashrc.d` and `~/.alias.d` are **real directories** that act as merge
-points. Each tool package drops a single symlink into one of them, named after
-the tool. `~/.profile.d` is normally a whole-folder symlink to
-`custom/.profile.d` (see below); if it is a real directory, it acts as a merge
-point the same way.
+`~/.profile.d`, `~/.bashrc.d`, and `~/.alias.d` are **real directories** that
+act as merge points. Each package drops a single symlink into the relevant one,
+named after the tool. Machine-local snippets from `custom/` and
+`~/.config/dotfiles-local/` join them the same way.
 
 ```
 ~/.profile.d/
-└── ...   (machine-specific only; see custom/ below)
+├── brew-path -> ../dotfiles/custom/.profile.d/brew-path
+├── nix-os    -> ../dotfiles/nix/.profile.d/nix-os
+├── open-code -> ../.config/dotfiles-local/profile.d/open-code
+└── proxy     -> ../.config/dotfiles-local/profile.d/proxy
 
 ~/.bashrc.d/
 ├── completion -> ../dotfiles/shell/.bashrc.d/completion
@@ -243,9 +247,13 @@ Each backend owns:
   `build-essential` → `base-devel` on Arch).
 - `PKG_METHOD` — tools that need a non-repo installer (`github` or
   `installer`). Ubuntu uses it for `starship` (pinned GitHub release, SHA-256
-  verified), `mise` (official `mise.run` installer, version pinned), and
-  `opencode` (pinned GitHub release, SHA-256 verified). On Arch, `opencode`
-  comes from the native `extra` repository instead, so its version can differ.
+  verified), `mise` (official `mise.run` installer, version pinned), `nix`
+  (pinned single-user tarball installer with `--no-daemon
+  --no-modify-profile`, so it never edits shell profiles), and `opencode`
+  (pinned GitHub release, SHA-256 verified). On Arch, `opencode` comes from the
+  native `extra` repository instead, so its version can differ. `pkg remove nix`
+  deletes `/nix` and the per-user Nix state but keeps the tracked
+  `~/.config/nix/nix.conf`.
 - `_pkg_install`, `_pkg_remove`, `_pkg_update`, `_pkg_upgrade`, `_pkg_search`,
   `_pkg_present`.
 - A sudo-or-root helper, plus dry-run support (`PKG_DRY_RUN=1`).
@@ -282,10 +290,11 @@ package database for repo packages. It exits non-zero if anything is missing.
    `packages.list`;
 4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
    `~/.inputrc`, `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
-   `~/.config/starship.toml`, and `~/.config/dotfiles/pkg-backend.sh` to
-   `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
-   the current repo;
-5. stows `shell tmux starship pkg mise eza zoxide fzf <distro>` with
+   `~/.config/starship.toml`, `~/.config/nix/nix.conf`, and
+   `~/.config/dotfiles/pkg-backend.sh` to `~/.dotfiles-backup-<timestamp>/`,
+   skipping symlinks that already point at the current repo;
+5. refuses to stow while `~/.profile.d` is still a whole-folder symlink, then
+   stows `shell tmux starship pkg mise eza zoxide fzf nix <distro>` with
    `--no-folding`.
 
 Options: `--dry-run` prints every package/backup/stow command without running
@@ -318,25 +327,22 @@ shell after the checks so you can inspect aliases, `pkg`, zoxide, and tmux.
 ## The `custom/` folder (git-ignored, machine-specific)
 
 `custom/` mirrors the same layout but holds files that are specific to this
-machine (corporate proxies/CAs, local aliases, local user names) and must
-**not** be committed. It is excluded by the single line in `.gitignore`:
+machine (local aliases, local paths) and must **not** be committed. It is
+excluded by the single line in `.gitignore`:
 
 ```
 custom
 ```
 
-It has three loadable subfolders, matching the loader system, plus any other
-config paths it needs:
+It has two loadable subfolders, matching the loader system, plus local scratch
+directories:
 
 ```
 custom/
-├── .alias.d/git                 # git-verify on/off   (corporate sslVerify)
-├── .profile.d/
-│   ├── nix-os                   # source $HOME/.nix-profile nix.sh
-│   ├── open-code                # NODE_EXTRA_CA_CERTS
-│   └── proxy                    # HTTP(S)/FTP/ALL proxy exports
-├── .bashrc.d/                   # (empty, ready for use)
-└── .config/nix/nix.conf         # machine-specific nix settings
+├── .alias.d/git                 # git-verify on/off
+├── .archive/zsh_history-*       # old shell history
+├── .profile.d/brew-path         # Homebrew PATH during retirement
+└── .zshrc.d/                    # (empty, ready for use)
 ```
 
 Language runtimes are owned by mise, not by `custom/`. The committed `mise`
@@ -352,33 +358,41 @@ OpenJDK 21 JRE is retained for OS packages even though mise's JDK wins on
 
 ### How `custom/` reaches the loaders
 
-`custom` is wired in two ways, depending on whether the target home directory
-is exclusive to it or shared:
+`~/.profile.d`, `~/.alias.d`, and `~/.bashrc.d` are real **manifold**
+directories, so `custom` adds **per-file symlinks** named after the snippet:
 
-- **Exclusive directory** — `~/.profile.d` is a **whole-folder symlink** to the
-  repo's `custom/.profile.d`:
-  ```
-  ~/.profile.d -> dotfiles/custom/.profile.d
-  ```
-  Nothing else writes to `~/.profile.d`, so the whole folder is linked.
-
-- **Shared (manifold) directory** — since `~/.alias.d` also receives files
-  from `ubuntu`, `cachyos`, `omarchy`, and `custom`, `custom` must add
-  **per-file symlinks** into the same real directory:
-  ```
-  ~/.alias.d/git -> ../dotfiles/custom/.alias.d/git
-  ```
-  The same applies to `~/.bashrc.d` if a local snippet is needed there.
-
-- **Non-loader config** — paths outside the loader dirs are linked individually:
-  ```
-  ~/.config/nix/nix.conf -> ../../dotfiles/custom/.config/nix/nix.conf
-  ```
+```
+~/.alias.d/git        -> ../dotfiles/custom/.alias.d/git
+~/.profile.d/brew-path -> ../dotfiles/custom/.profile.d/brew-path
+```
 
 Adding a new machine-specific file = drop it into the matching `custom/`
 subfolder, then create the home symlink with the appropriate `ln -s` (relative
 target). Because it lives under `custom/`, it stays local and never gets
 committed (`git status` stays clean).
+
+## The `~/.config/dotfiles-local/` folder (private, outside the repo)
+
+Corporate and otherwise sensitive machine files live **outside** the repo in
+`~/.config/dotfiles-local/`, so they cannot be committed even by accident:
+
+```
+~/.config/dotfiles-local/
+├── profile.d/open-code     # NODE_EXTRA_CA_CERTS -> certs/<corp>-ca.pem
+├── profile.d/proxy         # HTTP(S)/FTP/ALL proxy exports
+└── certs/<corp>-ca.pem     # corporate CA bundle
+```
+
+Link each snippet into the real `~/.profile.d` manifold:
+
+```
+~/.profile.d/open-code -> ../.config/dotfiles-local/profile.d/open-code
+~/.profile.d/proxy     -> ../.config/dotfiles-local/profile.d/proxy
+```
+
+Other private files (for example `~/certs/<corp>-ca.pem`) may point here too.
+Nothing in this directory is tracked, and it should never be copied into
+`custom/` or committed.
 
 ## Adding a tool (summary recipe)
 

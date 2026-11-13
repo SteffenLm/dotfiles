@@ -3,7 +3,7 @@
 Terms used across this repo's docs.
 
 - **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
-  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `ubuntu`) that mirrors
+  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `nix`, `ubuntu`) that mirrors
   home-directory paths. Install with `cd ~/dotfiles && stow <pkg>` (run stow
   from inside the repo with the bare package name — `stow` rejects slashes, so
   not `stow dotfiles/tmux`). See [loader-system.md](./loader-system.md).
@@ -25,6 +25,11 @@ Terms used across this repo's docs.
   also exports `JAVA_HOME`). Its
   `idiomatic_version_file_enable_tools = ["rust"]` setting makes mise read
   project `rust-toolchain.toml` pins. Skipped when `mise` is absent.
+- **`nix`** — the package that tracks `~/.config/nix/nix.conf` (flakes,
+  sandbox, aarch64 emulation) and `~/.profile.d/nix-os`, which
+  sources `$HOME/.nix-profile/etc/profile.d/nix.sh` when Nix is installed and is
+  silent otherwise. Nix itself is opt-in via `pkg install nix`, not part of
+  `packages.list`.
 - **`eza`** — the alias package (`~/.alias.d/eza`) that maps `ls`, `lsa`, `lt`,
   and `lta` to Omarchy's exact `eza` definitions. Skipped when `eza` is absent.
 - **`zoxide`** — the package with two snippets: `~/.bashrc.d/zoxide` runs
@@ -77,15 +82,19 @@ Terms used across this repo's docs.
   `~/.profile.d/*` (once), `~/.bashrc.d/*`, and `~/.alias.d/*` for interactive
   non-login shells. Each tool drops a snippet into one of these directories and
   it loads automatically at startup.
-- **manifold directory** — a home directory (`~/.bashrc.d`, `~/.alias.d`, and
-  `~/.profile.d` when it is a real directory) that holds one per-tool symlink
-  so snippets from many packages merge in one place the loader reads. When
-  `~/.profile.d` is a whole-folder symlink to `custom/.profile.d`, that folder
-  is the manifold.
-- **custom package** — the git-ignored `custom/` folder holding machine-specific
-  files (proxies, CAs, local aliases, local user names) that must not be
-  committed. Wired into the loaders via symlinks. See
+- **manifold directory** — a real home directory (`~/.profile.d`,
+  `~/.bashrc.d`, `~/.alias.d`) that holds one per-tool symlink so snippets from
+  many packages merge in one place the loader reads. `~/.profile.d` is a real
+  directory in normal operation; a whole-folder symlink is a legacy state that
+  `install.sh` refuses to stow through.
+- **custom package** — the git-ignored `custom/` folder holding non-corporate
+  machine-specific files such as local aliases and `brew-path` that must not be
+  committed. Wired into the manifold directories via per-file symlinks. See
   [loader-system.md](./loader-system.md).
+- **`dotfiles-local`** — `~/.config/dotfiles-local/`, a private directory
+  outside the repo for corporate proxy and CA settings. It holds
+  `profile.d/proxy`, `profile.d/open-code`, and `certs/<corp>-ca.pem`; its
+  snippets are linked into `~/.profile.d` manually and never committed.
 - **Omarchy parity** — [omarchy-parity.md](./omarchy-parity.md), the map of
   which Omarchy `quattro` shell/tmux files are copied, adapted, or skipped for
   SSH terminal use. Desktop/Hyprland and `omarchy-*` binaries are out of scope.
