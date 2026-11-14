@@ -80,7 +80,8 @@ Deliberately skipped:
 - `tldr` is intentionally excluded.
 - The Windows Terminal Retro 82 scheme
   (`docs/windows-terminal-retro-82.json`) supplies the terminal palette that
-  OpenCode's `system` theme and tmux inherit.
+  OpenCode's `system` theme and tmux inherit. Catppuccin, Catppuccin Latte,
+  and Tokyo Night schemes are available in the same folder.
 
 ## tmux
 

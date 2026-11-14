@@ -211,12 +211,19 @@ fi
 o=$(grep -c '^opencode = "latest"$' "$REPO/mise/.config/mise/config.toml" 2>/dev/null || true)
 ck "mise tracks opencode latest" "1" "$o"
 
-scheme=$REPO/docs/windows-terminal-retro-82.json
-o=$(jq -e . "$scheme" >/dev/null 2>&1 && printf ok || printf bad)
-ck "windows terminal scheme valid JSON" "ok" "$o"
+schemes=("$REPO"/docs/windows-terminal-*.json)
+bad=
+for scheme in "${schemes[@]}"; do
+  jq -e 'type == "object" and (.name | type == "string")' "$scheme" \
+    >/dev/null 2>&1 || bad="$bad $(basename "$scheme")"
+done
+ck "windows terminal schemes valid JSON" "" "$bad"
 
-o=$(jq -r '.name' "$scheme" 2>/dev/null)
-ck "windows terminal scheme name" "Retro 82" "$o"
+names=
+for scheme in "${schemes[@]}"; do
+  names="$names$(jq -r '.name' "$scheme" 2>/dev/null)|"
+done
+ck "windows terminal scheme names" "Catppuccin|Catppuccin Latte|Retro 82|Tokyo Night|" "$names"
 
 if [ -e "$sbx/.agents/skills/engineering/tdd/SKILL.md" ]; then
   ck "agents skills stowed" "present" "present"

@@ -50,10 +50,13 @@ Terms used across this repo's docs.
   from the terminal palette, like tmux, so no theme file is shipped.
   `opencode.json` is user-managed and not tracked. See
   [windows-terminal.md](./windows-terminal.md).
-- **Windows Terminal scheme** — the Retro 82 palette in
-  `docs/windows-terminal-retro-82.json`, selected as `"colorScheme": "Retro
-  82"`. Windows Terminal answers OpenCode's palette queries, so the `system`
-  theme inherits the same colors tmux uses.
+- **Windows Terminal scheme** — one of the palettes in
+  `docs/windows-terminal-*.json`: `Retro 82`, `Catppuccin`,
+  `Catppuccin Latte`, and `Tokyo Night`. Each is extracted from the matching
+  Omarchy theme (`/usr/share/omarchy/themes/<theme>/colors.toml`). Paste the
+  object into `"schemes"` and select it with `"colorScheme"`. Windows Terminal
+  answers OpenCode's palette queries, so the `system` theme inherits the same
+  colors tmux uses.
 - **`agents`** — the stow package for agent skills. It vendors the
   `engineering/` and `productivity/` skills from `mattpocock/skills` into
   `~/.agents/skills/`, and keeps a local `grilling` fork that asks one question

@@ -4,19 +4,35 @@ Windows Terminal drives the ANSI palette for SSH sessions from Windows.
 OpenCode's built-in `system` theme and tmux both inherit that palette, so they
 match without a tracked OpenCode theme.
 
-## Add the Retro 82 scheme
+## Available schemes
+
+The schemes are extracted from Omarchy's theme sources
+(`/usr/share/omarchy/themes/<theme>/colors.toml`) with the same mapping
+Omarchy uses for its alacritty, ghostty, and kitty configs, so each one
+matches the corresponding Omarchy theme exactly.
+
+| Name | File | Notes |
+|---|---|---|
+| `Retro 82` | [windows-terminal-retro-82.json](./windows-terminal-retro-82.json) | Omarchy's Retro 82 theme. |
+| `Catppuccin` | [windows-terminal-catppuccin.json](./windows-terminal-catppuccin.json) | Omarchy's Catppuccin theme (Mocha colors). |
+| `Catppuccin Latte` | [windows-terminal-catppuccin-latte.json](./windows-terminal-catppuccin-latte.json) | Omarchy's Catppuccin Latte theme. |
+| `Tokyo Night` | [windows-terminal-tokyo-night.json](./windows-terminal-tokyo-night.json) | Omarchy's Tokyo Night theme. |
+
+## Add a scheme
 
 1. Open Windows Terminal → **Settings** → **Open JSON file**.
-2. Add the object from
-   [windows-terminal-retro-82.json](./windows-terminal-retro-82.json) to the
-   top-level `"schemes"` array.
+2. Add one or more objects from the files above to the top-level `"schemes"`
+   array.
 3. Set the color scheme on the Ubuntu/CachyOS profile:
 
    ```json
    "colorScheme": "Retro 82"
    ```
 
-The palette mirrors Omarchy's current Retro 82 terminal colors
+Recent Windows Terminal versions also accept a light/dark pair, for example
+`{"light": "Catppuccin Latte", "dark": "Catppuccin"}`.
+
+Each file mirrors the corresponding Omarchy theme's terminal colors
 (`alacritty.toml` / `ghostty.conf` / `kitty.conf`).
 
 ## Select the system theme in OpenCode
