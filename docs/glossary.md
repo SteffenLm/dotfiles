@@ -131,9 +131,9 @@ Terms used across this repo's docs.
   it loads automatically at startup.
 - **manifold directory** — a real home directory (`~/.profile.d`,
   `~/.bashrc.d`, `~/.alias.d`) that holds one per-tool symlink so snippets from
-  many packages merge in one place the loader reads. `~/.profile.d` is a real
-  directory in normal operation; a whole-folder symlink is a legacy state that
-  the Ubuntu install refuses to stow nix through.
+  many packages merge in one place the loader reads. A whole-folder symlink is
+  a legacy state; `install.sh` replaces it when dangling and otherwise refuses
+  to stow until it is converted.
 - **custom package** — the git-ignored `custom/` folder holding non-corporate
   machine-specific files such as local aliases that must not be committed.
   Wired into the manifold directories via per-file symlinks. See

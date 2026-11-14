@@ -197,6 +197,10 @@ act as merge points. Each package drops a single symlink into the relevant one,
 named after the tool. Machine-local snippets from `custom/` and
 `~/.config/dotfiles-local/` join them the same way.
 
+A whole-folder symlink is a legacy state from older installs. `install.sh`
+replaces one automatically when it is dangling, but stops when it still
+resolves: convert it manually so machine-local snippets are preserved.
+
 ```
 ~/.profile.d/
 ├── nix-os    -> ../dotfiles/nix/.profile.d/nix-os
@@ -325,13 +329,14 @@ package database for repo packages. It exits non-zero if anything is missing.
    `~/.config/dotfiles/pkg-backend.sh`, plus `~/.config/nix/nix.conf` on
    Ubuntu and `~/.config/alacritty/alacritty.toml` on CachyOS, to
    `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
-   the current repo, then removes stale `~/.config/opencode/tui.json` and
+   the current repo; replaces dangling whole-folder symlinks at
+   `~/.bashrc.d`, `~/.alias.d`, and (on Ubuntu) `~/.profile.d` with real
+   directories, and stops if one of those paths is a valid symlink; then
+   removes stale `~/.config/opencode/tui.json` and
    `~/.config/opencode/themes/retro-82.json` symlinks that point into the
    repo; it never writes `~/.config/opencode/cli.json`;
-5. on Ubuntu, refuses to stow while `~/.profile.d` is still a whole-folder
-   symlink, then stows the shared packages plus `nix` and `ubuntu`; on CachyOS
-   it stows the shared packages plus `alacritty` and `cachyos`, all with
-   `--no-folding`;
+5. stows the shared packages plus `nix` and `ubuntu` on Ubuntu, or plus
+   `alacritty` and `cachyos` on CachyOS, all with `--no-folding`;
 6. runs `mise --cd mise/.config/mise install opencode`, so opencode is installed
    from the tracked config (also with `--no-stow`).
 

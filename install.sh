@@ -108,18 +108,22 @@ pkg install stow
 pkg install "${packages[@]}"
 
 # opencode is declared in the tracked mise config rather than packages.list.
+# Its npm backend needs the configured Node version first: `mise install <tool>`
+# does not install dependencies from the config for scoped installs.
 mise_bin=$(command -v mise || true)
 if [ -z "$mise_bin" ] && [ -x "$HOME/.local/bin/mise" ]; then
   mise_bin="$HOME/.local/bin/mise"
 fi
 if [ -n "$mise_bin" ]; then
-  run "$mise_bin" --cd "$REPO/mise/.config/mise" install opencode
+  mise_cmd=("$mise_bin")
 elif [ "$dry_run" = 1 ]; then
-  run mise --cd "$REPO/mise/.config/mise" install opencode
+  mise_cmd=(mise)
 else
-  printf 'install.sh: mise not found; cannot install opencode\n' >&2
+  printf 'install.sh: mise not found; cannot install node and opencode\n' >&2
   exit 1
 fi
+run "${mise_cmd[@]}" --cd "$REPO/mise/.config/mise" install node
+run "${mise_cmd[@]}" --cd "$REPO/mise/.config/mise" install opencode
 
 # Older releases installed opencode directly into ~/.local/bin; mise owns it now.
 if [ -f "$HOME/.local/bin/opencode" ] &&
@@ -155,10 +159,9 @@ elif [ "$distro" = cachyos ]; then
 fi
 
 backup_existing() {
-  local timestamp backup_dir file target found=0
+  local file target found=0
 
-  timestamp=$(date +%Y%m%d-%H%M%S)
-  backup_dir="$HOME/.dotfiles-backup-$timestamp"
+  backup_dir="$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
 
   for file in "${backup_files[@]}"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
@@ -193,6 +196,45 @@ backup_existing() {
 
 backup_existing
 
+# Legacy installs folded whole manifold directories into symlinks. With
+# --no-folding, stow cannot merge multiple packages through such a link;
+# dangling links are safe to replace, but valid ones may hold machine-local
+# snippets and must be converted manually.
+prepare_manifold_dirs() {
+  local dir link
+  local -a dirs=("$HOME/.bashrc.d" "$HOME/.alias.d")
+  if [ "$distro" = ubuntu ]; then
+    dirs+=("$HOME/.profile.d")
+  fi
+
+  for dir in "${dirs[@]}"; do
+    [ -L "$dir" ] || continue
+
+    if [ -e "$dir" ]; then
+      printf 'install.sh: %s is a symlink; it must be a real directory before stowing\n' \
+        "$dir" >&2
+      printf 'install.sh: convert it to a manifold directory (see docs/loader-system.md)\n' >&2
+      if [ "$dry_run" = 0 ]; then
+        exit 1
+      fi
+      printf 'install.sh: dry run only; a real run would stop before stow\n' >&2
+      continue
+    fi
+
+    link=$(readlink "$dir" 2>/dev/null || true)
+    if [ "$dry_run" = 1 ]; then
+      printf 'Would replace dangling manifold symlink %s -> %s\n' "$dir" "${link:-?}"
+    else
+      printf 'Replacing dangling manifold symlink %s -> %s\n' "$dir" "${link:-?}"
+    fi
+    run mkdir -p "$backup_dir"
+    run mv "$dir" "$backup_dir/"
+    run mkdir -p "$dir"
+  done
+}
+
+prepare_manifold_dirs
+
 # OpenCode owns ~/.config/opencode/cli.json; never seed or manage it here.
 # Remove only legacy symlinks into this repo, including dangling ones: the
 # opencode stow package no longer exists, so `readlink -f` would fail.
@@ -210,16 +252,6 @@ if [ -L "$opencode_theme" ]; then
   case $opencode_theme_target in
     "$REPO"/*) run rm -f "$opencode_theme" ;;
   esac
-fi
-
-if [ "$distro" = ubuntu ] && [ -L "$HOME/.profile.d" ]; then
-  printf 'install.sh: %s is a symlink; it must be a real directory before stowing nix\n' \
-    "$HOME/.profile.d" >&2
-  printf 'install.sh: convert it to a manifold directory (see docs/loader-system.md)\n' >&2
-  if [ "$dry_run" = 0 ]; then
-    exit 1
-  fi
-  printf 'install.sh: dry run only; a real run would stop before stow\n' >&2
 fi
 
 stow_packages=(shell tmux starship pkg mise eza zoxide fzf agents)

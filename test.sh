@@ -93,7 +93,10 @@ sk() {
   printf 'SKIP  %s (%s)\n' "$1" "$2"
   skip=$((skip + 1))
 }
-run() { HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" "$@" 2>"$sbx/err"; }
+run() {
+  env -u __DOTFILES_PROFILE_D_LOADED \
+    HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" "$@" 2>"$sbx/err"
+}
 errs() { grep -vE 'cannot set terminal process group|no job control in this shell' "$sbx/err" 2>/dev/null; }
 tm() { HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" SHELL=/bin/bash "$TMUX" -L "$TSOCK" "$@"; }
 pkgdry() {
@@ -195,7 +198,9 @@ ck "pkg install dry-run ($DISTRO)" "$want_install" "$o"
 o=$(pkgdry install gh)
 ck "pkg install maps gh ($DISTRO)" "$want_gh" "$o"
 o=$(pkgdry install opencode)
-ck "pkg install opencode uses mise" "DRY: mise install opencode" "$o"
+want='DRY: mise install node
+DRY: mise install opencode'
+ck "pkg install opencode installs node first" "$want" "$o"
 o=$(pkgdry remove opencode)
 ck "pkg remove opencode uses mise" "DRY: mise uninstall --all opencode" "$o"
 o=$(pkgdry update)
@@ -511,6 +516,47 @@ ck "tmux-keybindings lists prefix q" "1" "$o"
 
 o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" tmux-keybindings --print 2>/dev/null | grep -c 'Show Tmux keybindings' || true)
 ck "tmux-keybindings includes notes" "1" "$o"
+
+echo
+echo "--- installer checks ---"
+isbx=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-install-test.XXXXXX")
+mkdir -p "$isbx/home" "$isbx/bin"
+ln -s "$REPO" "$isbx/home/dotfiles"
+ln -s dotfiles/sdkman/.alias.d "$isbx/home/.alias.d"
+printf 'legacy bashrc\n' > "$isbx/home/.bashrc"
+for stub in pacman mise; do
+  printf '#!/bin/sh\nexit 0\n' > "$isbx/bin/$stub"
+done
+printf '#!/bin/sh\nexec "$@"\n' > "$isbx/bin/sudo"
+chmod +x "$isbx/bin/sudo" "$isbx/bin/pacman" "$isbx/bin/mise"
+
+if HOME="$isbx/home" PATH="$isbx/bin:$TEST_PATH" "$REPO/install.sh" cachyos \
+  >"$isbx/out" 2>"$isbx/err"; then
+  rc=0
+else
+  rc=$?
+fi
+ck "installer exits successfully" "0" "$rc"
+if [ "$rc" -ne 0 ]; then
+  sed 's/^/    /' "$isbx/err"
+fi
+
+ck "installer replaces dangling .alias.d" "dir" \
+  "$([ -d "$isbx/home/.alias.d" ] && [ ! -L "$isbx/home/.alias.d" ] && printf dir || printf link)"
+for snippet in eza ff omarchy update-os zoxide; do
+  ck "installer stows .alias.d/$snippet" "yes" \
+    "$([ -L "$isbx/home/.alias.d/$snippet" ] && printf yes || printf no)"
+done
+ck "installer stows .bashrc" "yes" \
+  "$([ -L "$isbx/home/.bashrc" ] && [ -e "$isbx/home/.bashrc" ] && printf yes || printf no)"
+
+backup=$(find "$isbx/home" -maxdepth 1 -type d -name '.dotfiles-backup-*' | head -1)
+ck "installer creates backup dir" "yes" "$([ -n "$backup" ] && printf yes || printf no)"
+ck "installer backs up .bashrc" "file" "$([ -n "$backup" ] && [ -f "$backup/.bashrc" ] && printf file || printf missing)"
+ck "installer backs up .alias.d link" "link" "$([ -n "$backup" ] && [ -L "$backup/.alias.d" ] && printf link || printf missing)"
+ck "installer stow stderr clean" "0" "$(grep -c 'INTERNAL ERROR' "$isbx/err" || true)"
+
+rm -rf "$isbx"
 
 echo
 echo "RESULTS: $pass passed, $fail failed, $skip skipped"
