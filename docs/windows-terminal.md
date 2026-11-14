@@ -1,8 +1,9 @@
-# Windows Terminal palette for OpenCode and tmux
+# Windows Terminal setup for OpenCode and tmux
 
 Windows Terminal drives the ANSI palette for SSH sessions from Windows.
 OpenCode's built-in `system` theme and tmux both inherit that palette, so they
-match without a tracked OpenCode theme.
+match without a tracked OpenCode theme. The appearance settings below also
+mirror Omarchy's terminal setup.
 
 ## Available schemes
 
@@ -34,6 +35,50 @@ Recent Windows Terminal versions also accept a light/dark pair, for example
 
 Each file mirrors the corresponding Omarchy theme's terminal colors
 (`alacritty.toml` / `ghostty.conf` / `kitty.conf`).
+
+## Match the Omarchy terminal look
+
+Omarchy's alacritty, ghostty, and kitty configs share one appearance setup.
+Windows Terminal has no shared profile file, so apply the same numbers to the
+SSH profile, or to `profiles.defaults` to apply them everywhere:
+
+```json
+{
+  "font": { "face": "JetBrainsMono Nerd Font", "size": 9 },
+  "padding": "14",
+  "cursorShape": "filledBox",
+  "intenseTextStyle": "bold",
+  "scrollbarState": "hidden",
+  "bellStyle": "none"
+}
+```
+
+| Setting | Omarchy source | Windows Terminal |
+|---|---|---|
+| Font | `JetBrainsMono Nerd Font` in all three | `font.face` |
+| Size | `9` points in all three | `font.size` (points) |
+| Padding | `14` (`window.padding.x/y`, `window-padding-x/y`, `window_padding_width`) | `padding` |
+| Cursor | block (`cursor-style`, `cursor_shape`) | `cursorShape: "filledBox"` |
+| Intense text | bold, not bright (all three select the bold face only) | `intenseTextStyle: "bold"` |
+| Scrollbar | alacritty draws none; kitty only while scrolling | `scrollbarState: "hidden"` |
+| Bell | silent (kitty `enable_audio_bell no`) | `bellStyle: "none"` |
+
+Notes:
+
+- Install `JetBrainsMono Nerd Font` on Windows first; otherwise Windows
+  Terminal falls back to Consolas and prompt/eza glyphs break.
+- `intenseTextStyle` defaults to `"bright"`, which brightens bold text without
+  bolding it. Set `"bold"` to match Omarchy, where `ESC[1m` only selects the
+  bold face.
+- Windows Terminal cannot set cursor blink. Ghostty and kitty disable it
+  (`cursor-style-blink = false`, `cursor_blink_interval 0`); on Windows, set
+  **Control Panel → Keyboard → Speed → Cursor blink rate** to **None**.
+- Padding is scaled by the display scale factor, so `14` is a close match, not
+  a pixel-exact one.
+- Not portable: Omarchy hides window decorations (alacritty
+  `decorations = "None"`, kitty `hide_window_decorations yes`); Windows Terminal
+  always draws its own tabs and titlebar. `TERM = "xterm-256color"` is set on
+  the server, not by the terminal.
 
 ## Select the system theme in OpenCode
 
