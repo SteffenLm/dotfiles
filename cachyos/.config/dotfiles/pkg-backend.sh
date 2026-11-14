@@ -10,6 +10,10 @@ declare -gA PKG_METHOD=(
   [opencode]=mise
 )
 
+declare -gA PKG_MISE_DEPS=(
+  [opencode]=node
+)
+
 _pkg_sudo() {
   if [ "$(id -u)" -eq 0 ]; then
     "$@"
@@ -51,9 +55,14 @@ _pkg_mise_bin() {
 }
 
 _pkg_install_mise() {
-  local name=$1 mise
+  local name=$1 mise dep
+  local -a deps=()
+  read -r -a deps <<< "${PKG_MISE_DEPS[$name]:-}"
 
   if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+    for dep in "${deps[@]}"; do
+      printf 'DRY: mise install %s\n' "$dep"
+    done
     printf 'DRY: mise install %s\n' "$name"
     return 0
   fi
@@ -64,6 +73,9 @@ _pkg_install_mise() {
     return 1
   fi
 
+  for dep in "${deps[@]}"; do
+    "$mise" install "$dep" || return
+  done
   "$mise" install "$name"
 }
 
