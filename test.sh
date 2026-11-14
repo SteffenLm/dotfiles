@@ -235,6 +235,13 @@ if [ "$DISTRO" = cachyos ]; then
   ck "alacritty-theme lists themes" "4" "$o"
   ck "alacritty-theme stderr clean" "" "$(errs)"
 
+  printf '#!/bin/sh\nexit 0\n' > "$sbx/.local/bin/alacritty"
+  chmod +x "$sbx/.local/bin/alacritty"
+  o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" "$sbx/.local/bin/alacritty-theme" tokyo-night 2>"$sbx/err")
+  ck "alacritty-theme switches" "alacritty: switched to tokyo-night" "$o"
+  ck "alacritty-theme state saved" "yes" "$([ -L "$sbx/.local/state/alacritty/current.toml" ] && printf yes || printf no)"
+  ck "alacritty-theme switch stderr clean" "" "$(errs)"
+
   o=$(grep -c '^ttf-jetbrains-mono-nerd$' "$REPO/cachyos-packages.list" 2>/dev/null || true)
   ck "cachyos font package declared" "1" "$o"
 fi

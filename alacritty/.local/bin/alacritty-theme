@@ -3,7 +3,7 @@
 set -euo pipefail
 
 theme_dir=${ALACRITTY_THEME_DIR:-$HOME/.config/alacritty/themes}
-state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/alacritty
+state_dir=$HOME/.local/state/alacritty
 current=$state_dir/current.toml
 
 usage() {
