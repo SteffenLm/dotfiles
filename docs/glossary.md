@@ -4,7 +4,7 @@ Terms used across this repo's docs.
 
 - **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
   `starship`, `pkg`, `mise`, `eza`, `zoxide`, `fzf`, `alacritty`, `nix`,
-  `agents`, `ubuntu`) that mirrors home-directory paths. Install with
+  `agents`, `ubuntu`, `cachyos`) that mirrors home-directory paths. Install with
   `cd ~/dotfiles && stow <pkg>` (run stow from inside the repo with the bare
   package name — `stow` rejects slashes, so not `stow dotfiles/tmux`). See
   [loader-system.md](./loader-system.md).

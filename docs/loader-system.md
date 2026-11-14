@@ -164,7 +164,7 @@ completion. History (`~/.bashrc.d/history`) and completion
 (`~/.bashrc.d/completion`) are split out of Omarchy's `default/bash/shell`.
 `~/.bashrc.d/env` holds interactive environment variables (`EDITOR`,
 `BROWSER`, `BAT_THEME`, `MANROFFOPT`, guarded `MANPAGER`), and
-`~/.bashrc.d/functions` defines `open()` and `n()`.
+`~/.bashrc.d/functions` defines `open()`, `n()`, and `compress()`.
 
 The portable Omarchy aliases live in `~/.alias.d/omarchy`; `ff`, `eff`, and
 `sff()` live in `~/.alias.d/ff` and are only defined when both `fzf` and `bat`
@@ -342,7 +342,8 @@ a fresh login shell.
 
 ## Testing the shell configuration
 
-`./test.sh` is the sandbox harness. It stows the shared packages plus the
+`./test.sh` is the sandbox harness. It stows the shared packages, the
+distro-specific extra (`nix` on Ubuntu, `alacritty` on CachyOS), and the
 selected distro package into a temporary `$HOME`, runs login/non-login shell
 checks, and exercises tmux on an isolated socket — it never touches the live
 home directory. Set `DISTRO=cachyos` to exercise the Arch backend; the default
@@ -364,8 +365,10 @@ REPO=/path/to/repo LIVE=/path/to/live ./test.sh          # override paths
 ```
 
 With stdin redirected, the harness prints `RESULTS: <pass> passed, <fail>
-failed` and exits without opening a shell. On a TTY it drops into the sandbox
-shell after the checks so you can inspect aliases, `pkg`, zoxide, and tmux.
+failed, <skip> skipped` and exits without opening a shell. The only skipped
+check is the Ubuntu `pkg present` probe when the host has no `dpkg-query`. On a
+TTY it drops into the sandbox shell after the checks so you can inspect
+aliases, `pkg`, zoxide, and tmux.
 
 ## Agent skills (`agents` package)
 
@@ -473,7 +476,13 @@ Nothing in this directory is tracked, and it should never be copied into
    above (maps, methods, commands, sudo helper, dry-run).
 2. Add `<distro>/.alias.d/update-os` with `alias update-os='pkg upgrade'`.
 3. Add the distro name to the validation in `install.sh`.
-4. Test a dry run:
+4. If the distro needs its own stow package or backup file, follow the
+   `nix` (Ubuntu) and `alacritty` (CachyOS) pattern: extend the stow list and
+   backup list in `install.sh`, and the stow list in `test.sh`. Mention the new
+   package in the stow-package docs.
+5. If the distro needs extra packages, add an optional
+   `<distro>-packages.list`; `install.sh` reads it after `packages.list`.
+6. Test a dry run:
    ```sh
    ./install.sh <distro> --dry-run
    ```

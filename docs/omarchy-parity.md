@@ -72,6 +72,10 @@ Deliberately skipped:
   snippets here)
 - `default/bash/envs`: the locale bootstrap fallback (the system locale is
   already set in the environment)
+- `default/bash/fns/ssh-reconnect` and `default/bash/fns/ssh-port-forwarding`
+  (the `ssh` wrapper, `fip`, `dip`, `lip`): client-side helpers. The SSH client
+  here is Windows, so installing them on the Ubuntu server does not help the
+  Windows → Ubuntu workflow.
 - `ff`'s `TERM=xterm-kitty` `kitty icat` image-preview branch; the port always
   uses the portable `bat` preview
 - `tldr` (see Packages)
