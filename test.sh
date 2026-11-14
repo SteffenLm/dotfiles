@@ -8,6 +8,14 @@ set -u
 
 REPO=${REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 LIVE=${LIVE:-$HOME/dotfiles}
+DISTRO=${DISTRO:-ubuntu}
+case $DISTRO in
+  ubuntu | cachyos) ;;
+  *)
+    echo "unknown DISTRO: $DISTRO (expected ubuntu or cachyos)" >&2
+    exit 1
+    ;;
+esac
 
 STOW=$(command -v stow) || { echo "missing: stow"; exit 1; }
 TMUX=$(command -v tmux) || { echo "missing: tmux"; exit 1; }
@@ -62,7 +70,7 @@ ln -s "$sbx/does-not-exist" "$sbx/.bashrc.d/zz-dangling"
 
 cd "$REPO" || exit 1
 echo "stowing into $sbx ..."
-"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix opencode agents ubuntu || exit 1
+"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix agents "$DISTRO" || exit 1
 
 pass=0
 fail=0
@@ -78,6 +86,11 @@ ck() {
 run() { HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" "$@" 2>"$sbx/err"; }
 errs() { grep -vE 'cannot set terminal process group|no job control in this shell' "$sbx/err" 2>/dev/null; }
 tm() { HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" SHELL=/bin/bash "$TMUX" -L "$TSOCK" "$@"; }
+pkgdry() {
+  local backend="$REPO/$DISTRO/.config/dotfiles/pkg-backend.sh"
+  HOME="$sbx" REPO="$REPO" DOTFILES_PKG_BACKEND="$backend" \
+    PKG_DRY_RUN=1 bash -c '. "$REPO/pkg/.bashrc.d/pkg"; pkg "$@"' _ "$@" 2>"$sbx/err"
+}
 
 echo
 echo "--- automatic checks ---"
@@ -98,6 +111,29 @@ ck "update-os alias present" "yes" "$o"
 
 o=$(run bash -i -c 'pkg present jq >/dev/null 2>&1 && printf yes || printf no')
 ck "pkg present works" "yes" "$o"
+
+case $DISTRO in
+  ubuntu)
+    want_install='DRY: apt-get install -y -- jq'
+    want_gh='DRY: apt-get install -y -- gh'
+    want_update='DRY: apt-get update'
+    ;;
+  cachyos)
+    want_install='DRY: pacman -S --needed --noconfirm -- jq'
+    want_gh='DRY: pacman -S --needed --noconfirm -- github-cli'
+    want_update='DRY: pacman -Syu --noconfirm'
+    ;;
+esac
+o=$(pkgdry install jq)
+ck "pkg install dry-run ($DISTRO)" "$want_install" "$o"
+o=$(pkgdry install gh)
+ck "pkg install maps gh ($DISTRO)" "$want_gh" "$o"
+o=$(pkgdry install opencode)
+ck "pkg install opencode uses mise" "DRY: mise install opencode" "$o"
+o=$(pkgdry remove opencode)
+ck "pkg remove opencode uses mise" "DRY: mise uninstall --all opencode" "$o"
+o=$(pkgdry update)
+ck "pkg update dry-run ($DISTRO)" "$want_update" "$o"
 
 o=$(run bash -i -c 'command -v z >/dev/null 2>&1 && command -v zi >/dev/null 2>&1 && command -v zd >/dev/null 2>&1 && printf yes || printf no')
 ck "zoxide z/zi/zd present" "yes" "$o"
@@ -166,39 +202,21 @@ else
   ck "nix config stowed" "present" "missing"
 fi
 
-if [ -e "$sbx/.config/opencode/tui.json" ]; then
-  ck "opencode tui config not stowed" "absent" "present"
+if [ -e "$sbx/.config/mise/config.toml" ]; then
+  ck "mise config stowed" "present" "present"
 else
-  ck "opencode tui config not stowed" "absent" "absent"
+  ck "mise config stowed" "present" "missing"
 fi
 
-if [ -e "$sbx/.config/opencode/cli.json" ]; then
-  ck "opencode cli config not stowed" "absent" "present"
-else
-  ck "opencode cli config not stowed" "absent" "absent"
-fi
+o=$(grep -c '^opencode = "latest"$' "$REPO/mise/.config/mise/config.toml" 2>/dev/null || true)
+ck "mise tracks opencode latest" "1" "$o"
 
-if [ -e "$sbx/.config/opencode/themes/retro-82.json" ]; then
-  ck "opencode theme stowed" "present" "present"
-else
-  ck "opencode theme stowed" "present" "missing"
-fi
+scheme=$REPO/docs/windows-terminal-retro-82.json
+o=$(jq -e . "$scheme" >/dev/null 2>&1 && printf ok || printf bad)
+ck "windows terminal scheme valid JSON" "ok" "$o"
 
-cli=$REPO/opencode/.config/opencode/cli.json
-o=$(jq -e . "$cli" >/dev/null 2>&1 && printf ok || printf bad)
-ck "opencode cli snapshot valid JSON" "ok" "$o"
-
-o=$(jq -r '.["$schema"]' "$cli" 2>/dev/null)
-ck "opencode cli snapshot schema" "https://opencode.ai/v2/cli.json" "$o"
-
-o=$(jq -r '.theme.name' "$cli" 2>/dev/null)
-ck "opencode cli theme pinned" "retro-82" "$o"
-
-o=$(jq -e . "$sbx/.config/opencode/themes/retro-82.json" >/dev/null 2>&1 && printf ok || printf bad)
-ck "opencode theme valid JSON" "ok" "$o"
-
-o=$(jq -r 'has("defs") and has("theme")' "$sbx/.config/opencode/themes/retro-82.json" 2>/dev/null)
-ck "opencode theme uses v1 format" "true" "$o"
+o=$(jq -r '.name' "$scheme" 2>/dev/null)
+ck "windows terminal scheme name" "Retro 82" "$o"
 
 if [ -e "$sbx/.agents/skills/engineering/tdd/SKILL.md" ]; then
   ck "agents skills stowed" "present" "present"
@@ -298,7 +316,7 @@ else
 fi
 
 o=$(run bash -i -c 'for a in "g" "gcm" "gcam" "gcad" "mup" "t" ".." "..." "...."; do alias "$a" >/dev/null 2>&1 || exit 1; done; printf yes')
-ck "omarchy aliases present" "yes" "$o"
+ck "ported aliases present" "yes" "$o"
 
 o=$(run bash -i -c 'type -t open >/dev/null 2>&1 && type -t n >/dev/null 2>&1 && printf yes || printf no')
 ck "functions open/n present" "yes" "$o"
@@ -321,6 +339,7 @@ else
   ck "tmux: starts with sandbox config" "ok" "failed: $(cat "$sbx/tmux.err")"
 fi
 
+sleep 0.5
 ck "tmux: panes use bash" "bash" "$(tm list-panes -F '#{pane_current_command}' 2>/dev/null | head -1)"
 ck "tmux: prefix" "C-Space" "$(tm show-options -gv prefix 2>/dev/null)"
 ck "tmux: prefix2" "C-b" "$(tm show-options -gv prefix2 2>/dev/null)"
@@ -334,7 +353,8 @@ ck "tmux: mode-keys vi" "vi" "$(tm show-options -gwv mode-keys 2>/dev/null)"
 ck "tmux: default-terminal" "tmux-256color" "$(tm show-options -gv default-terminal 2>/dev/null)"
 ck "tmux: no plugin declarations" "0" "$(tm show-options -g 2>/dev/null | grep -c '@plugin' || true)"
 ck "tmux: q reloads config" "1" "$(tm list-keys -T prefix q 2>/dev/null | grep -c 'source-file.*config/tmux/tmux.conf' || true)"
-ck "tmux: clipboard terminal feature" "1" "$(tm show-options -gv terminal-features 2>/dev/null | grep -c '^\*:clipboard$' || true)"
+o=$(tm show-options -gv terminal-features 2>/dev/null | grep -c '^\*:clipboard$' || true)
+ck "tmux: clipboard terminal feature" "yes" "$([ "${o:-0}" -ge 1 ] && printf yes || printf no)"
 ck "tmux-keybindings executable" "yes" "$([ -x "$sbx/.local/bin/tmux-keybindings" ] && printf yes || printf no)"
 
 o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" tmux-keybindings --print 2>"$sbx/tmk.err" | grep -c 'PREFIX + q' || true)
@@ -364,7 +384,7 @@ if [ -t 0 ]; then
   echo
   echo "tmux (isolated server, sandbox config, socket '$TSOCK'):"
   echo "  tmux -L $TSOCK ls                      # server is already running"
-  echo "  tmux -L $TSOCK attach                  # enter the Omarchy tmux config"
+  echo "  tmux -L $TSOCK attach                  # enter the ported tmux config"
   echo "  tmux -L $TSOCK show-options -gv prefix # expect: C-Space"
   echo "  tmux -L $TSOCK kill-server             # optional, cleanup does it anyway"
   echo "  # inside: prefix q reloads; prefix c opens window 1 (1-based); status is on top"

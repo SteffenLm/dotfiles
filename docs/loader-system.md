@@ -16,9 +16,8 @@ dotfiles/
 ├── eza/ zoxide/ fzf/               # eza aliases, zoxide init/cd, fzf keys
 ├── tmux/                           # app config package
 ├── nix/                            # nix.conf + nix profile snippet
-├── opencode/                       # cli.json snapshot + retro-82 theme
 ├── agents/                         # vendored skills + local grilling fork
-├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
+├── ubuntu/ cachyos/                # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
 ├── install.sh                      # package install + one-time stow helper
 ├── test.sh                         # sandbox harness (see below)
@@ -33,13 +32,11 @@ For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
 `mise/.config/mise/config.toml` → `~/.config/mise/config.toml`,
 `shell/.inputrc` → `~/.inputrc`,
 `zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`,
-`nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf`, and
-`opencode/.config/opencode/themes/retro-82.json` →
-`~/.config/opencode/themes/retro-82.json`. The tracked
-`opencode/.config/opencode/cli.json` is deliberately **not** stowed: v2
-rewrites it with a temp file + `rename()`, so it must stay a real file.
-`opencode/.stow-local-ignore` excludes it, and `install.sh` seeds it from the
-snapshot only when it is missing. The `agents` package maps
+`nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf`. OpenCode is a mise tool,
+not a stow package: it has no tracked CLI config or theme, and its `cli.json`
+is owned by OpenCode. Select the built-in `system` theme so it inherits the
+terminal palette (see [windows-terminal.md](./windows-terminal.md)). The
+`agents` package maps
 `agents/.agents/skills/...` to `~/.agents/skills/...`; see
 [skills.md](./skills.md).
 
@@ -57,11 +54,15 @@ stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's lay
 ```
 
 Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`,
-`zoxide`, `fzf`, `nix`, `opencode`, and `agents`. Distro package names are
-`ubuntu`, `cachyos`, and `omarchy`;
-stow **exactly one** of them.
+`zoxide`, `fzf`, `nix`, and `agents`. Distro package names are
+`ubuntu` and `cachyos`; stow **exactly one** of them.
 To switch distros, unstow the old package first (`stow -D ubuntu`), because all
 distro packages provide the same backend and `update-os` paths.
+
+Omarchy is deliberately not an install target. A real Omarchy machine already
+ships its own shell, tmux, mise, and opencode configuration; this repo targets
+Ubuntu and CachyOS. See [omarchy-parity.md](./omarchy-parity.md) for the
+rationale behind the portable shell port.
 
 > ⚠️ Do NOT write `stow dotfiles/tmux` or `stow tmux` from anywhere other than
 > `~/dotfiles` — the former errors with `Slashes are not permitted in package
@@ -75,7 +76,7 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode agents ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix agents ubuntu
 ```
 
 `install.sh <distro>` runs that command for you after installing tools. It also
@@ -174,7 +175,7 @@ font: SSH transmits the glyphs and the client renders them.
 
 Both entry points prepend `$HOME/.local/bin` to `PATH` with a guard, so the
 directory appears exactly once. This is where Ubuntu gets standalone tools that
-are not in apt (`starship`, `mise`, `opencode`, `neovim`, `kubectl`) and where
+are not in apt (`starship`, `mise`, `neovim`, `kubectl`) and where
 the `fd` shim is created. Neovim is unpacked under `~/.local/opt` and reached
 through a `~/.local/bin/nvim` symlink.
 
@@ -247,7 +248,6 @@ That symlink comes from the stowed distro package:
 |-----------|------------------------------------------------------|--------------------------------|
 | `ubuntu`  | `ubuntu/.config/dotfiles/pkg-backend.sh`             | `apt-get`                      |
 | `cachyos` | `cachyos/.config/dotfiles/pkg-backend.sh`            | `pacman`                       |
-| `omarchy` | `omarchy/.config/dotfiles/pkg-backend.sh`            | `pacman` + `omarchy-update`    |
 
 Set `DOTFILES_PKG_BACKEND` to point at a different backend; `install.sh` uses
 that to source the repo copy before the package is stowed.
@@ -256,18 +256,26 @@ Each backend owns:
 
 - `PKG_MAP` — generic name → native package name (`fd` → `fd-find` on Ubuntu,
   `build-essential` → `base-devel` on Arch).
-- `PKG_METHOD` — tools that need a non-repo installer (`github` or
-  `installer`). Ubuntu uses it for `starship` (pinned GitHub release, SHA-256
+- `PKG_METHOD` — tools that need a non-repo installer (`github`, `installer`,
+  or `mise`). Ubuntu uses it for `starship` (pinned GitHub release, SHA-256
   verified), `mise` (official `mise.run` installer, version pinned), `nix`
   (pinned single-user tarball installer with `--no-daemon
-  --no-modify-profile`, so it never edits shell profiles), `opencode`
-  (pinned GitHub release, SHA-256 verified), `neovim` (pinned GitHub release,
-  SHA-256 verified, unpacked to `~/.local/opt/nvim-<version>` with an `nvim`
-  symlink in `~/.local/bin`), and `kubectl` (pinned `dl.k8s.io` binary, SHA-256
-  verified). On Arch, `opencode`, `neovim`, and `kubectl` come from the native
-  repositories instead, so their versions can differ. `pkg present neovim`
-  checks the `nvim` binary name. `pkg remove nix` deletes `/nix` and the
-  per-user Nix state but keeps the tracked `~/.config/nix/nix.conf`.
+  --no-modify-profile`, so it never edits shell profiles), `neovim` (pinned
+  GitHub release, SHA-256 verified, unpacked to `~/.local/opt/nvim-<version>`
+  with an `nvim` symlink in `~/.local/bin`), and `kubectl` (pinned
+  `dl.k8s.io` binary, SHA-256 verified). `pkg present neovim` checks the
+  `nvim` binary name. `pkg remove nix` deletes `/nix` and the per-user Nix
+  state but keeps the tracked `~/.config/nix/nix.conf`.
+- `opencode` is a mise tool on both distros, tracked as `latest` in
+  `mise/.config/mise/config.toml`; `install.sh` installs it from that tracked
+  config with `mise --cd mise/.config/mise install opencode`, and `mup` updates
+  it. `pkg install opencode` and `pkg remove opencode` delegate to mise, and
+  `pkg present opencode` also checks the mise shim. `install.sh` removes a
+  legacy `~/.local/bin/opencode` left by the previous GitHub installer. No
+  OpenCode theme is tracked; the CLI settings file is owned by OpenCode, and
+  the built-in `system` theme inherits the terminal palette (see
+  [windows-terminal.md](./windows-terminal.md)).
+- CachyOS maps the generic `gh` name to the native `github-cli` package.
 - `_pkg_install`, `_pkg_remove`, `_pkg_update`, `_pkg_upgrade`, `_pkg_search`,
   `_pkg_present`.
 - A sudo-or-root helper, plus dry-run support (`PKG_DRY_RUN=1`).
@@ -279,7 +287,7 @@ Omarchy's `ff` alias working without a `PKG_MAP` entry. `yt-dlp` is part of
 
 `pkg update` syncs package state before an install. Ubuntu refreshes apt
 indexes; CachyOS runs `pacman -Syu` (so installing does not leave a partial
-upgrade); Omarchy runs `omarchy-update`.
+upgrade).
 
 `pkg upgrade` is what the per-distro alias calls:
 
@@ -287,9 +295,8 @@ upgrade); Omarchy runs `omarchy-update`.
 ~/.alias.d/update-os -> ../dotfiles/<distro>/.alias.d/update-os
 ```
 
-All three aliases are `alias update-os='pkg upgrade'`; the backend decides
-whether that means `apt-get update && apt-get upgrade`, `pacman -Syu`, or
-`omarchy-update`.
+Both aliases are `alias update-os='pkg upgrade'`; the backend decides whether
+that means `apt-get update && apt-get upgrade` or `pacman -Syu`.
 
 `pkg present` checks command availability for standalone tools and the native
 package database for repo packages. It exits non-zero if anything is missing.
@@ -304,15 +311,17 @@ package database for repo packages. It exits non-zero if anything is missing.
    `packages.list`;
 4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
    `~/.inputrc`, `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
-   `~/.config/starship.toml`, `~/.config/nix/nix.conf`,
-   `~/.config/opencode/themes/retro-82.json`, and
-   `~/.config/dotfiles/pkg-backend.sh` to `~/.dotfiles-backup-<timestamp>/`,
-   skipping symlinks that already point at the current repo, then removes a
-   stale `~/.config/opencode/tui.json` symlink into the repo and seeds
-   `~/.config/opencode/cli.json` from the tracked snapshot when it is missing;
+   `~/.config/starship.toml`, `~/.config/mise/config.toml`,
+   `~/.config/nix/nix.conf`, and `~/.config/dotfiles/pkg-backend.sh` to
+   `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
+   the current repo, then removes stale `~/.config/opencode/tui.json` and
+   `~/.config/opencode/themes/retro-82.json` symlinks that point into the
+   repo; it never writes `~/.config/opencode/cli.json`;
 5. refuses to stow while `~/.profile.d` is still a whole-folder symlink, then
-   stows `shell tmux starship pkg mise eza zoxide fzf nix opencode <distro>`
-   with `--no-folding`.
+   stows `shell tmux starship pkg mise eza zoxide fzf nix agents <distro>`
+   with `--no-folding`;
+6. runs `mise --cd mise/.config/mise install opencode`, so opencode is installed
+   from the tracked config (also with `--no-stow`).
 
 Options: `--dry-run` prints every package/backup/stow command without running
 it; `--no-stow` installs tools but stops before backup and stow. The script
@@ -321,14 +330,17 @@ a fresh login shell.
 
 ## Testing the shell configuration
 
-`./test.sh` is the sandbox harness. It stows the shared packages into a
-temporary `$HOME`, runs login/non-login shell checks, and exercises tmux on an
-isolated socket — it never touches the live home directory.
+`./test.sh` is the sandbox harness. It stows the shared packages plus the
+selected distro package into a temporary `$HOME`, runs login/non-login shell
+checks, and exercises tmux on an isolated socket — it never touches the live
+home directory. Set `DISTRO=cachyos` to exercise the Arch backend; the default
+is `ubuntu`.
 
 The automated checks cover the loader, readline (`~/.inputrc`), history and
-completion, starship prompt/config, the interactive environment, the Omarchy
-aliases and functions, the bat shim when `batcat`/`bat` is available, and the
-tmux keybindings. With `bat` installed the suite currently passes cleanly.
+completion, starship prompt/config, the interactive environment, the ported
+aliases and functions, the `pkg` backend dry-runs, the bat shim when
+`batcat`/`bat` is available, and the tmux keybindings. With `bat` installed the
+suite currently passes cleanly.
 
 ```sh
 ./test.sh                                  # checks, then an interactive sandbox (TTY only)

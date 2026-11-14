@@ -1,3 +1,0 @@
-# shellcheck shell=bash
-
-alias update-os='pkg upgrade'

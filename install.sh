@@ -11,7 +11,6 @@ usage: ./install.sh <distro> [--dry-run] [--no-stow]
 distros:
   ubuntu    apt-based
   cachyos   pacman-based
-  omarchy   pacman-based, uses omarchy-update
 
 options:
   --dry-run   print package, backup, and stow commands without running them
@@ -35,7 +34,7 @@ for arg in "$@"; do
       usage
       exit 0
       ;;
-    ubuntu | cachyos | omarchy)
+    ubuntu | cachyos)
       if [ -n "$distro" ]; then
         printf 'install.sh: more than one distro given\n' >&2
         exit 2
@@ -99,6 +98,26 @@ pkg update
 pkg install stow
 pkg install "${packages[@]}"
 
+# opencode is declared in the tracked mise config rather than packages.list.
+mise_bin=$(command -v mise || true)
+if [ -z "$mise_bin" ] && [ -x "$HOME/.local/bin/mise" ]; then
+  mise_bin="$HOME/.local/bin/mise"
+fi
+if [ -n "$mise_bin" ]; then
+  run "$mise_bin" --cd "$REPO/mise/.config/mise" install opencode
+elif [ "$dry_run" = 1 ]; then
+  run mise --cd "$REPO/mise/.config/mise" install opencode
+else
+  printf 'install.sh: mise not found; cannot install opencode\n' >&2
+  exit 1
+fi
+
+# Older releases installed opencode directly into ~/.local/bin; mise owns it now.
+if [ -f "$HOME/.local/bin/opencode" ] &&
+  [ ! -L "$HOME/.local/bin/opencode" ]; then
+  run rm -f "$HOME/.local/bin/opencode"
+fi
+
 if [ "$do_stow" = 0 ]; then
   printf '\nSkipping backup and stow (--no-stow).\n'
   exit 0
@@ -120,8 +139,8 @@ backup_existing() {
     "$HOME/.tmux.conf" \
     "$HOME/.config/tmux/tmux.conf" \
     "$HOME/.config/starship.toml" \
+    "$HOME/.config/mise/config.toml" \
     "$HOME/.config/nix/nix.conf" \
-    "$HOME/.config/opencode/themes/retro-82.json" \
     "$HOME/.config/dotfiles/pkg-backend.sh"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
 
@@ -155,24 +174,23 @@ backup_existing() {
 
 backup_existing
 
-# cli.json is global-only and v2 rewrites it with a temp file + rename(), so it
-# must stay a real file. Seed it from the tracked snapshot only when missing.
+# OpenCode owns ~/.config/opencode/cli.json; never seed or manage it here.
+# Remove only legacy symlinks into this repo, including dangling ones: the
+# opencode stow package no longer exists, so `readlink -f` would fail.
 opencode_tui="$HOME/.config/opencode/tui.json"
 if [ -L "$opencode_tui" ]; then
-  opencode_tui_target=$(readlink -f -- "$opencode_tui" 2>/dev/null || true)
+  opencode_tui_target=$(readlink -m -- "$opencode_tui" 2>/dev/null || true)
   case $opencode_tui_target in
     "$REPO"/*) run rm -f "$opencode_tui" ;;
   esac
 fi
 
-opencode_cli="$HOME/.config/opencode/cli.json"
-if [ -L "$opencode_cli" ]; then
-  run rm -f "$opencode_cli"
-fi
-if [ ! -e "$opencode_cli" ] &&
-  [ -f "$REPO/opencode/.config/opencode/cli.json" ]; then
-  run install -Dm600 "$REPO/opencode/.config/opencode/cli.json" \
-    "$opencode_cli"
+opencode_theme="$HOME/.config/opencode/themes/retro-82.json"
+if [ -L "$opencode_theme" ]; then
+  opencode_theme_target=$(readlink -m -- "$opencode_theme" 2>/dev/null || true)
+  case $opencode_theme_target in
+    "$REPO"/*) run rm -f "$opencode_theme" ;;
+  esac
 fi
 
 if [ -L "$HOME/.profile.d" ]; then
@@ -186,7 +204,7 @@ if [ -L "$HOME/.profile.d" ]; then
 fi
 
 cd "$REPO"
-run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode agents "$distro"
+run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix agents "$distro"
 
 if [ "$dry_run" = 0 ]; then
   cat <<'EOF'

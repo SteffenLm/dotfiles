@@ -1,5 +1,9 @@
 # Omarchy shell parity
 
+> This repo is not installed on Omarchy machines. A real Omarchy install
+> already ships its own shell, tmux, mise, and opencode configuration; the port
+> documented here exists for the Ubuntu and CachyOS targets.
+
 This machine is reached over SSH, so the goal is an Omarchy-like **terminal**
 experience, not a desktop one. Only portable bash, readline, fzf, starship, and
 tmux behavior is ported. Hyprland, desktop packages, and `omarchy-*` binaries
@@ -11,11 +15,12 @@ default branch is not `main`.
 
 ## Current state
 
-The portable parity work is implemented and stowed.
+The portable parity work is implemented and stowed on the non-Omarchy targets
+(Ubuntu and CachyOS).
 
 - `bat` and `yt-dlp` are installed. On Ubuntu, `~/.local/bin/bat` resolves to
   `/usr/bin/batcat`.
-- `./test.sh </dev/null` passes the full suite (58 checks at the time of
+- `./test.sh </dev/null` passes the full suite (78 checks at the time of
   writing, with `bat` available).
 - The live tmux server was reloaded in place with
   `tmux source-file ~/.config/tmux/tmux.conf`; the session and windows were
@@ -67,9 +72,15 @@ Deliberately skipped:
   backend links `~/.local/bin/bat` → `batcat`; on Arch the binary is already
   `bat`.
 - `yt-dlp` is in `packages.list`.
+- `opencode` is not in `packages.list`; it is a mise tool tracked as `latest`
+  in `mise/.config/mise/config.toml`, installed by `install.sh`, and updated by
+  `mup`. No OpenCode theme is tracked; select the built-in `system` theme so it
+  inherits the terminal palette (see
+  [windows-terminal.md](./windows-terminal.md)).
 - `tldr` is intentionally excluded.
-- The opencode theme (`opencode/.config/opencode/themes/retro-82.json`) derives
-  from Omarchy's Retro '82 palette.
+- The Windows Terminal Retro 82 scheme
+  (`docs/windows-terminal-retro-82.json`) supplies the terminal palette that
+  OpenCode's `system` theme and tmux inherit.
 
 ## tmux
 

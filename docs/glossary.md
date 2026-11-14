@@ -3,13 +3,14 @@
 Terms used across this repo's docs.
 
 - **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
-  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `fzf`, `nix`, `opencode`,
-  `agents`, `ubuntu`) that mirrors
-  home-directory paths. Install with `cd ~/dotfiles && stow <pkg>` (run stow
+  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `fzf`, `nix`, `agents`, `ubuntu`)
+  that mirrors home-directory paths. Install with `cd ~/dotfiles && stow <pkg>` (run stow
   from inside the repo with the bare package name — `stow` rejects slashes, so
   not `stow dotfiles/tmux`). See [loader-system.md](./loader-system.md).
-- **distro package** — one of `ubuntu`, `cachyos`, or `omarchy`. It supplies
-  the `pkg` backend and the `update-os` alias. Stow exactly one per machine.
+- **distro package** — one of `ubuntu` or `cachyos`. It supplies the `pkg`
+  backend and the `update-os` alias. Stow exactly one per machine. Omarchy is
+  deliberately not a target; a real Omarchy install already ships its own
+  shell, tmux, mise, and opencode configuration.
 - **`pkg`** — the shell function loaded from `~/.bashrc.d/pkg`. It dispatches
   `install`, `remove`, `update`, `upgrade`, `search`, and `present` to the
   active distro backend.
@@ -22,10 +23,13 @@ Terms used across this repo's docs.
 - **`mise`** — the runtime-manager package. `~/.bashrc.d/mise` runs
   `mise activate bash` (after `set +h`), and
   `~/.config/mise/config.toml` holds the tracked global `[tools]` versions
-  (Node `26.13.1`, Temurin JDK `21.0.13+9.0.LTS`, and Rust `stable`; activation
-  also exports `JAVA_HOME`). Its
+  (Node `26.13.1`, Temurin JDK `21.0.13+9.0.LTS`, Rust `stable`, and opencode
+  `latest`; activation also exports `JAVA_HOME`). Its
   `idiomatic_version_file_enable_tools = ["rust"]` setting makes mise read
-  project `rust-toolchain.toml` pins. Skipped when `mise` is absent.
+  project `rust-toolchain.toml` pins. `install.sh` installs opencode from the
+  tracked config with `mise --cd mise/.config/mise install opencode`; the other
+  tools are installed on demand with `mise install`, and `mup` updates the
+  tracked tools. Skipped when `mise` is absent.
 - **`nix`** — the package that tracks `~/.config/nix/nix.conf` (flakes,
   sandbox, aarch64 emulation) and `~/.profile.d/nix-os`, which
   sources `$HOME/.nix-profile/etc/profile.d/nix.sh` when Nix is installed and is
@@ -39,13 +43,17 @@ Terms used across this repo's docs.
 - **`fzf`** — the package with two snippets: `~/.bashrc.d/fzf` loads the
   Ctrl-R/Ctrl-T/Alt-C key bindings, and `~/.alias.d/ff` adds the Omarchy `ff`,
   `eff`, and `sff()` helpers when both `fzf` and `bat` are present.
-- **`opencode`** — the package that pins opencode's TUI configuration and theme.
-  It tracks `~/.config/opencode/themes/retro-82.json`, a v1-format theme built
-  from the Omarchy/`retro-82.nvim` Retro '82 palette, and a snapshot of
-  `~/.config/opencode/cli.json` (`$schema` v2, theme `retro-82`). `cli.json` is
-  global-only and v2 rewrites it with a temp file + `rename()`, so it is
-  deliberately not stowed (see `opencode/.stow-local-ignore`); `install.sh`
-  seeds it only when missing. `opencode.json` is user-managed and not tracked.
+- **`opencode`** — a mise-managed terminal agent, tracked as `latest` in
+  `~/.config/mise/config.toml`. It is not a stow package: no CLI config or
+  theme is tracked. `~/.config/opencode/cli.json` is owned by OpenCode;
+  keybindings are set there by hand. The built-in `system` theme derives colors
+  from the terminal palette, like tmux, so no theme file is shipped.
+  `opencode.json` is user-managed and not tracked. See
+  [windows-terminal.md](./windows-terminal.md).
+- **Windows Terminal scheme** — the Retro 82 palette in
+  `docs/windows-terminal-retro-82.json`, selected as `"colorScheme": "Retro
+  82"`. Windows Terminal answers OpenCode's palette queries, so the `system`
+  theme inherits the same colors tmux uses.
 - **`agents`** — the stow package for agent skills. It vendors the
   `engineering/` and `productivity/` skills from `mattpocock/skills` into
   `~/.agents/skills/`, and keeps a local `grilling` fork that asks one question
@@ -75,11 +83,12 @@ Terms used across this repo's docs.
   `--no-stow`.
 - **sandbox harness** — `test.sh`, which stows packages into a temporary
   `$HOME` and runs shell/tmux checks without touching the live home directory.
-  With stdin redirected (`</dev/null`) it only runs the checks; on a TTY it
-  also opens an interactive sandbox shell. `KEEP=1` preserves the sandbox.
+  `DISTRO` selects the distro package to stow (default `ubuntu`; use
+  `DISTRO=cachyos` for the Arch backend). With stdin redirected (`</dev/null`)
+  it only runs the checks; on a TTY it also opens an interactive sandbox shell.
+  `KEEP=1` preserves the sandbox.
 - **`update-os`** — the per-distro alias for `pkg upgrade`. On Ubuntu it runs
-  `apt-get update && apt-get upgrade`; on CachyOS `pacman -Syu`; on Omarchy
-  `omarchy-update`.
+  `apt-get update && apt-get upgrade`; on CachyOS `pacman -Syu`.
 - **prefix** — the tmux key that introduces commands. Here `C-Space`, with
   `C-b` available as the secondary prefix (`prefix2`); composite bindings read
   like `prefix + q`.

@@ -10,7 +10,7 @@ declare -gA PKG_METHOD=(
   [starship]=github
   [mise]=installer
   [nix]=installer
-  [opencode]=github
+  [opencode]=mise
   [neovim]=github
   [kubectl]=installer
 )
@@ -18,7 +18,6 @@ declare -gA PKG_METHOD=(
 STARSHIP_VERSION=v1.27.0
 MISE_VERSION=v2026.11.7
 NIX_VERSION=2.35.1
-OPENCODE_VERSION=v2.3.0
 NEOVIM_VERSION=v0.12.6
 KUBECTL_VERSION=v1.37.2
 
@@ -94,24 +93,6 @@ _pkg_install_github() {
           ;;
       esac
       base=https://github.com/starship/starship/releases/download/$version
-      ;;
-    opencode)
-      version=$OPENCODE_VERSION
-      case $(uname -m) in
-        x86_64 | amd64)
-          asset=opencode-linux-x64.tar.gz
-          checksum=fc0f81522aceeabac47693d88389efa2bc517ce74c2c38fd6967819fcc6e4d3b
-          ;;
-        aarch64 | arm64)
-          asset=opencode-linux-arm64.tar.gz
-          checksum=3207fb5cdec448d479242c0f1a14f4f7bdfcad3a79209b5eb8f9003725e93711
-          ;;
-        *)
-          printf 'pkg: opencode: unsupported architecture: %s\n' "$(uname -m)" >&2
-          return 1
-          ;;
-      esac
-      base=https://github.com/anomalyco/opencode/releases/download/$version
       ;;
     *)
       printf 'pkg: no GitHub installer for %s\n' "$name" >&2
@@ -248,6 +229,48 @@ _pkg_install_installer() {
   esac
 }
 
+_pkg_mise_bin() {
+  if command -v mise >/dev/null 2>&1; then
+    command -v mise
+  elif [ -x "$HOME/.local/bin/mise" ]; then
+    printf '%s\n' "$HOME/.local/bin/mise"
+  fi
+}
+
+_pkg_install_mise() {
+  local name=$1 mise
+
+  if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+    printf 'DRY: mise install %s\n' "$name"
+    return 0
+  fi
+
+  mise=$(_pkg_mise_bin)
+  if [ -z "$mise" ]; then
+    printf 'pkg: mise not found; cannot install %s\n' "$name" >&2
+    return 1
+  fi
+
+  "$mise" install "$name"
+}
+
+_pkg_remove_mise() {
+  local name=$1 mise
+
+  if [ "${PKG_DRY_RUN:-0}" = 1 ]; then
+    printf 'DRY: mise uninstall --all %s\n' "$name"
+    return 0
+  fi
+
+  mise=$(_pkg_mise_bin)
+  if [ -z "$mise" ]; then
+    printf 'pkg: mise not found; cannot remove %s\n' "$name" >&2
+    return 1
+  fi
+
+  "$mise" uninstall --all "$name"
+}
+
 _pkg_link_fd() {
   local source
 
@@ -343,7 +366,7 @@ _pkg_install() {
 
   for name in "$@"; do
     case ${PKG_METHOD[$name]:-} in
-      github | installer)
+      github | installer | mise)
         specials+=("$name")
         ;;
       *)
@@ -366,6 +389,9 @@ _pkg_install() {
         ;;
       installer)
         _pkg_install_installer "$name" || return
+        ;;
+      mise)
+        _pkg_install_mise "$name" || return
         ;;
     esac
   done
@@ -393,7 +419,7 @@ _pkg_remove() {
 
   for name in "$@"; do
     case ${PKG_METHOD[$name]:-} in
-      github | installer)
+      github | installer | mise)
         specials+=("$name")
         ;;
       *)
@@ -409,7 +435,14 @@ _pkg_remove() {
   fi
 
   for name in "${specials[@]}"; do
-    _pkg_remove_special "$name" || return
+    case ${PKG_METHOD[$name]} in
+      mise)
+        _pkg_remove_mise "$name" || return
+        ;;
+      *)
+        _pkg_remove_special "$name" || return
+        ;;
+    esac
   done
 
   if [ "$fd_requested" = 1 ]; then
@@ -471,7 +504,8 @@ _pkg_present() {
 
     if [ -n "${PKG_METHOD[$name]:-}" ]; then
       if command -v "$name" >/dev/null 2>&1 ||
-        [ -x "$HOME/.local/bin/$name" ]; then
+        [ -x "$HOME/.local/bin/$name" ] ||
+        [ -x "${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims/$name" ]; then
         printf '%s: installed\n' "$name"
       else
         printf '%s: missing\n' "$name"

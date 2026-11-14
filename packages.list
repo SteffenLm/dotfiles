@@ -10,7 +10,6 @@ jq
 shellcheck
 build-essential
 mise
-opencode
 fzf
 bat
 gh
@@ -22,3 +21,4 @@ eza
 yt-dlp
 neovim
 kubectl
+# opencode is a mise tool; see mise/.config/mise/config.toml.

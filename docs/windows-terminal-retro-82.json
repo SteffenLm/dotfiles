@@ -1,0 +1,23 @@
+{
+  "name": "Retro 82",
+  "background": "#05182E",
+  "foreground": "#F6DCAC",
+  "cursorColor": "#F6DCAC",
+  "selectionBackground": "#134E5A",
+  "black": "#05182E",
+  "red": "#F85525",
+  "green": "#028391",
+  "yellow": "#E97B3C",
+  "blue": "#3F8F8A",
+  "purple": "#3F8F8A",
+  "cyan": "#8CBFB8",
+  "white": "#F6DCAC",
+  "brightBlack": "#2A6B78",
+  "brightRed": "#F85525",
+  "brightGreen": "#028391",
+  "brightYellow": "#E97B3C",
+  "brightBlue": "#FAA968",
+  "brightPurple": "#3F8F8A",
+  "brightCyan": "#8CBFB8",
+  "brightWhite": "#F6DCAC"
+}

@@ -1,4 +1,4 @@
 # Keep the helper scripts and upstream READMEs out of $HOME.
 ^/(check-grilling|update)\.sh$
-^/engineering/README\.md$
-^/productivity/README\.md$
+^/\.agents/skills/engineering/README\.md$
+^/\.agents/skills/productivity/README\.md$
