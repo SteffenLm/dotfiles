@@ -79,6 +79,7 @@ esac
 
 pass=0
 fail=0
+skip=0
 ck() {
   if [ "$2" = "$3" ]; then
     printf 'PASS  %s\n' "$1"
@@ -87,6 +88,10 @@ ck() {
     printf 'FAIL  %s\n        want [%s]\n        got  [%s]\n' "$1" "$2" "$3"
     fail=$((fail + 1))
   fi
+}
+sk() {
+  printf 'SKIP  %s (%s)\n' "$1" "$2"
+  skip=$((skip + 1))
 }
 run() { HOME="$sbx" INPUTRC="$sbx/.inputrc" PATH="$TEST_PATH" "$@" 2>"$sbx/err"; }
 errs() { grep -vE 'cannot set terminal process group|no job control in this shell' "$sbx/err" 2>/dev/null; }
@@ -114,8 +119,13 @@ ck "non-interactive ignores rc" "unset" "$o"
 o=$(run bash -i -c 'alias update-os >/dev/null 2>&1 && printf yes || printf no')
 ck "update-os alias present" "yes" "$o"
 
-o=$(run bash -i -c 'pkg present jq >/dev/null 2>&1 && printf yes || printf no')
-ck "pkg present works" "yes" "$o"
+if [ "$DISTRO" = ubuntu ] && ! command -v dpkg-query >/dev/null 2>&1 &&
+  [ ! -e /etc/debian_version ]; then
+  sk "pkg present works" "Ubuntu backend on a non-Debian host needs dpkg-query"
+else
+  o=$(run bash -i -c 'pkg present jq >/dev/null 2>&1 && printf yes || printf no')
+  ck "pkg present works" "yes" "$o"
+fi
 
 case $DISTRO in
   ubuntu)
@@ -372,6 +382,15 @@ ck "ported aliases present" "yes" "$o"
 o=$(run bash -i -c 'type -t open >/dev/null 2>&1 && type -t n >/dev/null 2>&1 && printf yes || printf no')
 ck "functions open/n present" "yes" "$o"
 
+o=$(run bash -i -c 'type -t compress >/dev/null 2>&1 && alias decompress >/dev/null 2>&1 && printf yes || printf no')
+ck "compress/decompress present" "yes" "$o"
+
+o=$(run bash -i -c 'cd "$HOME" && mkdir -p compress-test/sub && printf hi > compress-test/sub/file && compress compress-test/ && tar -tzf compress-test.tar.gz | LC_ALL=C sort | tr "\n" " "')
+ck "compress writes tar.gz" "compress-test/ compress-test/sub/ compress-test/sub/file " "$o"
+
+o=$(run bash -i -c 'cd "$HOME" && mkdir -p decompress-test && cd decompress-test && decompress ../compress-test.tar.gz && cat compress-test/sub/file')
+ck "decompress extracts tar.gz" "hi" "$o"
+
 o=$(run bash -i -c 'alias ff >/dev/null 2>&1 && printf yes || printf no')
 if [ -e "$sbx/.local/bin/bat" ]; then
   ck "ff alias present with bat" "yes" "$o"
@@ -415,7 +434,7 @@ o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" tmux-keybindings --print 2>/de
 ck "tmux-keybindings includes notes" "1" "$o"
 
 echo
-echo "RESULTS: $pass passed, $fail failed"
+echo "RESULTS: $pass passed, $fail failed, $skip skipped"
 echo
 echo "Sandbox HOME: $sbx"
 
@@ -428,6 +447,7 @@ if [ -t 0 ]; then
   echo "  pkg present jq                       # expect: jq: installed"
   echo "  alias ls                             # expect: eza -lh ..."
   echo "  type z zd                            # zoxide functions"
+  echo "  type compress; alias decompress      # tar.gz helpers"
   echo "  cd /tmp && pwd                       # real dir uses builtin cd"
   echo "  echo \$__DOTFILES_PROFILE_D_LOADED   # expect: 1"
   echo "  env -u __DOTFILES_PROFILE_D_LOADED bash -l   # fresh login in sandbox"

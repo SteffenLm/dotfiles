@@ -8,6 +8,7 @@ alias ....='cd ../../..'
 # Tools
 alias t='tmux attach || tmux new -s Work'
 alias mup='MISE_MINIMUM_RELEASE_AGE=0 mise up'
+alias decompress='tar -xzf'
 
 # Git
 alias g='git'

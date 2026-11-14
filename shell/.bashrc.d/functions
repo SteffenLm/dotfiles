@@ -11,3 +11,8 @@ n() {
     command nvim "$@"
   fi
 }
+
+# tar.gz helpers, not zip. `compress dir/` writes dir.tar.gz next to dir.
+compress() {
+  tar -czf "${1%/}.tar.gz" "${1%/}"
+}

@@ -21,14 +21,16 @@ theme switcher so the ANSI palette matches the Windows Terminal schemes.
 
 - `bat` and `yt-dlp` are installed. On Ubuntu, `~/.local/bin/bat` resolves to
   `/usr/bin/batcat`.
-- `./test.sh </dev/null` passes the Ubuntu suite (78 checks at the time of
-  writing, with `bat` available). `DISTRO=cachyos ./test.sh </dev/null` passes
-  82 checks, including the Alacritty config and theme switcher.
+- `./test.sh </dev/null` passes the full suite with `bat` available.
+  `DISTRO=cachyos ./test.sh </dev/null` additionally exercises the CachyOS
+  Alacritty config, theme switcher, and saved theme state.
 - The live tmux server was reloaded in place with
   `tmux source-file ~/.config/tmux/tmux.conf`; the session and windows were
   kept. `prefix ?` opens the annotated pager popup on tmux 3.4.
-- `tmux 3.4` is the supported local version. The only version-sensitive tmux
-  option is guarded as described below.
+- tmux 3.4 on Ubuntu 24.04 runs the full config, and the only version-sensitive
+  option (`extended-keys-format`) is guarded for 3.5+. OpenCode's `system` theme
+  inside tmux needs tmux 3.6 or newer; see
+  [Versions and OpenCode's system theme](#versions-and-opencodes-system-theme).
 
 ## What is copied or adapted
 
@@ -40,6 +42,7 @@ theme switcher so the ANSI palette matches the Windows Terminal schemes.
 | `default/bash/envs` | `shell/.bashrc.d/env` | adapted | `nvim`→`vim`→`vi` editor fallback, `xdg-open` as `BROWSER`, `BAT_THEME=ansi`, `MANROFFOPT=-c`, and a `MANPAGER` guarded on `bat` + `col`. `PATH` handling already exists in the loader; locale comes from the system environment. |
 | `default/bash/aliases` | `shell/.alias.d/omarchy` | adapted | Portable alias subset (see below). |
 | `default/bash/aliases` (`open`, `n`) | `shell/.bashrc.d/functions` | copied | Shell functions rather than aliases. |
+| `default/bash/fns/compression` | `shell/.bashrc.d/functions`, `shell/.alias.d/omarchy` | copied | `compress()` and the `decompress` alias; tar.gz, not zip. |
 | `default/bash/aliases` (`ff`, `eff`, `sff`) | `fzf/.alias.d/ff` | adapted | Only defined when both `fzf` and `bat` are present. |
 | `default/bash/init` (starship) | `starship/.bashrc.d/starship` | adapted | Uses `starship init bash --print-full-init`. Mise, zoxide, and fzf init already live in their own snippets. |
 | `config/starship.toml` | `starship/.config/starship.toml` | copied | Cyan directory/git prompt with `❯`. Needs a Nerd Font for the git glyphs. |
@@ -52,9 +55,13 @@ theme switcher so the ANSI palette matches the Windows Terminal schemes.
 Ported from Omarchy:
 
 - directories: `..`, `...`, `....`
-- tools: `t`, `mup`, `open()`, `n()`
+- tools: `t`, `mup`, `open()`, `n()`, `compress()`, `decompress`
 - git: `g`, `gcm`, `gcam`, `gcad`
 - fzf (when `fzf` and `bat` exist): `ff`, `eff`, `sff()`
+
+`compress <path>` writes `<path>.tar.gz` next to the source and strips a
+trailing slash; `decompress <archive>` is `tar -xzf`. These are **tar.gz**
+helpers, not zip.
 
 Deliberately skipped:
 
@@ -118,6 +125,46 @@ Reloading the config with `prefix q` or
 windows, and panes stay. It re-appends `terminal-features` values, so a
 reloaded server can show a duplicate `xterm-kitty:extkeys` entry. That is
 cosmetic and clears on the next server restart.
+
+### Versions and OpenCode's system theme
+
+The config runs on tmux 3.4 (Ubuntu 24.04) and newer; it is verified on tmux
+3.4 and 3.8. tmux 3.4 is enough for the config itself and for tmux's own ANSI
+colors.
+
+OpenCode's built-in `system` theme needs tmux **3.6 or newer** when it runs
+inside tmux. tmux 3.4 answers the OSC 4 palette query from its own palette and
+does not forward OSC 10/11 foreground/background queries, so `system` derives
+wrong colors or falls back. tmux 3.6 forwards OSC 4 and asks the outer terminal
+for OSC 10/11. Outside tmux, Windows Terminal answers directly, so `system`
+works on 24.04.
+
+Preferred fix: upgrade to Ubuntu 26.04 LTS, which ships tmux 3.6a.
+
+Fallback: build tmux 3.8 user-locally. This does not touch the system package.
+
+```sh
+sudo apt-get install -y libevent-dev libncurses-dev pkg-config bison build-essential
+mkdir -p ~/.local/opt
+curl -fL https://github.com/tmux/tmux/releases/download/3.8/tmux-3.8.tar.gz |
+  tar -xz -C /tmp
+cd /tmp/tmux-3.8
+./configure --prefix="$HOME/.local/opt/tmux-3.8"
+make -j"$(nproc)"
+make install
+ln -sfn ~/.local/opt/tmux-3.8/bin/tmux ~/.local/bin/tmux
+hash -r
+command -v tmux   # expect ~/.local/bin/tmux
+tmux -V           # expect tmux 3.8
+```
+
+`~/.local/bin` is prepended by the shell loader, so the symlink wins over
+`/usr/bin/tmux`. A running tmux server keeps the old binary; run
+`tmux kill-server` and start a new session to switch. **`tmux kill-server`
+loses all sessions**, so do it when no work is running.
+
+With Nix already in use, `nix profile install nixpkgs#tmux` is an alternative.
+Do **not** install Ubuntu 26.04 `.deb` packages on 24.04.
 
 ## Refreshing from upstream
 
