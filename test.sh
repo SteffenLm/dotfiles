@@ -101,6 +101,57 @@ pkgdry() {
   HOME="$sbx" REPO="$REPO" DOTFILES_PKG_BACKEND="$backend" \
     PKG_DRY_RUN=1 bash -c '. "$REPO/pkg/.bashrc.d/pkg"; pkg "$@"' _ "$@" 2>"$sbx/err"
 }
+toml_value() {
+  local file=$1 section=$2 key=$3
+  awk -v section="[$section]" -v key="$key" '
+    $0 == section { in_section = 1; next }
+    /^\[/ { in_section = 0 }
+    in_section && $1 == key {
+      value = $0
+      sub(/^[^=]*= *"/, "", value)
+      sub(/".*$/, "", value)
+      print value
+      exit
+    }
+  ' "$file"
+}
+scheme_name() {
+  local name=${1##*/}
+  name=${name#windows-terminal-}
+  printf '%s\n' "${name%.json}"
+}
+palette_mismatches() {
+  local json=$1 toml=$2 section key json_key want got out=
+  while IFS='|' read -r section key json_key; do
+    want=$(jq -r ".$json_key" "$json")
+    got=$(toml_value "$toml" "$section" "$key")
+    [ "$want" = "$got" ] || out="$out $section.$key(want $want, got $got)"
+  done <<'MAP'
+colors.primary|background|background
+colors.primary|foreground|foreground
+colors.cursor|text|background
+colors.cursor|cursor|cursorColor
+colors.selection|text|foreground
+colors.selection|background|selectionBackground
+colors.normal|black|black
+colors.normal|red|red
+colors.normal|green|green
+colors.normal|yellow|yellow
+colors.normal|blue|blue
+colors.normal|magenta|purple
+colors.normal|cyan|cyan
+colors.normal|white|white
+colors.bright|black|brightBlack
+colors.bright|red|brightRed
+colors.bright|green|brightGreen
+colors.bright|yellow|brightYellow
+colors.bright|blue|brightBlue
+colors.bright|magenta|brightPurple
+colors.bright|cyan|brightCyan
+colors.bright|white|brightWhite
+MAP
+  printf '%s' "$out"
+}
 
 echo
 echo "--- automatic checks ---"
@@ -229,9 +280,6 @@ if [ "$DISTRO" = cachyos ]; then
   o=$(find -L "$sbx/.config/alacritty/themes" -maxdepth 1 -type f -name '*.toml' 2>/dev/null | wc -l)
   ck "alacritty themes stowed" "4" "$o"
 
-  o=$(grep -c 'background = "#05182E"' "$sbx/.config/alacritty/themes/retro-82.toml" 2>/dev/null || true)
-  ck "alacritty retro-82 palette" "1" "$o"
-
   o=$(grep -c '~/.local/state/alacritty/current.toml' "$sbx/.config/alacritty/alacritty.toml" 2>/dev/null || true)
   ck "alacritty current theme import" "1" "$o"
 
@@ -245,11 +293,19 @@ if [ "$DISTRO" = cachyos ]; then
   ck "alacritty-theme lists themes" "4" "$o"
   ck "alacritty-theme stderr clean" "" "$(errs)"
 
-  printf '#!/bin/sh\nexit 0\n' > "$sbx/.local/bin/alacritty"
+  cat > "$sbx/.local/bin/alacritty" <<SH
+#!/bin/sh
+printf '%s %s\n' "\$1" "\$2" > "$sbx/alacritty-msg.cmd"
+printf '%s\n' "\$3" > "$sbx/alacritty-msg.payload"
+SH
   chmod +x "$sbx/.local/bin/alacritty"
   o=$(HOME="$sbx" PATH="$sbx/.local/bin:$TEST_PATH" "$sbx/.local/bin/alacritty-theme" tokyo-night 2>"$sbx/err")
   ck "alacritty-theme switches" "alacritty: switched to tokyo-night" "$o"
   ck "alacritty-theme state saved" "yes" "$([ -L "$sbx/.local/state/alacritty/current.toml" ] && printf yes || printf no)"
+  ck "alacritty-theme sends msg config" "msg config" "$(cat "$sbx/alacritty-msg.cmd" 2>/dev/null)"
+  ck "alacritty-theme sends theme payload" \
+    "$(cat "$sbx/.config/alacritty/themes/tokyo-night.toml")" \
+    "$(cat "$sbx/alacritty-msg.payload" 2>/dev/null)"
   ck "alacritty-theme switch stderr clean" "" "$(errs)"
 
   o=$(grep -c '^ttf-jetbrains-mono-nerd$' "$REPO/cachyos-packages.list" 2>/dev/null || true)
@@ -278,6 +334,29 @@ for scheme in "${schemes[@]}"; do
   names="$names$(jq -r '.name' "$scheme" 2>/dev/null)|"
 done
 ck "windows terminal scheme names" "Catppuccin|Catppuccin Latte|Retro 82|Tokyo Night|" "$names"
+
+scheme_names=$(
+  for scheme in "${schemes[@]}"; do
+    scheme_name "$scheme"
+  done | LC_ALL=C sort
+)
+theme_names=$(
+  for theme in "$REPO"/alacritty/.config/alacritty/themes/*.toml; do
+    [ -f "$theme" ] || continue
+    basename "$theme" .toml
+  done | LC_ALL=C sort
+)
+ck "alacritty themes match Windows Terminal schemes" "$scheme_names" "$theme_names"
+
+for scheme in "${schemes[@]}"; do
+  name=$(scheme_name "$scheme")
+  theme="$REPO/alacritty/.config/alacritty/themes/$name.toml"
+  if [ ! -f "$theme" ]; then
+    ck "alacritty palette matches $name" "" "missing $theme"
+  else
+    ck "alacritty palette matches $name" "" "$(palette_mismatches "$scheme" "$theme")"
+  fi
+done
 
 if [ -e "$sbx/.agents/skills/engineering/tdd/SKILL.md" ]; then
   ck "agents skills stowed" "present" "present"

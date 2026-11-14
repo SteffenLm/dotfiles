@@ -78,7 +78,8 @@ run() {
   "$@"
 }
 
-read_packages() {
+# Append the non-comment entries from one package list to the global array.
+append_packages() {
   local file=$1 line
   while IFS= read -r line || [ -n "$line" ]; do
     line=${line%%#*}
@@ -90,9 +91,9 @@ read_packages() {
 }
 
 packages=()
-read_packages "$REPO/packages.list"
+append_packages "$REPO/packages.list"
 if [ -r "$REPO/${distro}-packages.list" ]; then
-  read_packages "$REPO/${distro}-packages.list"
+  append_packages "$REPO/${distro}-packages.list"
 fi
 
 if [ ${#packages[@]} -eq 0 ]; then

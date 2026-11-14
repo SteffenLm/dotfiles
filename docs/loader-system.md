@@ -352,10 +352,12 @@ is `ubuntu`.
 The automated checks cover the loader, readline (`~/.inputrc`), history and
 completion, starship prompt/config, the interactive environment, the ported
 aliases and functions, the `pkg` backend dry-runs, the bat shim when
-`batcat`/`bat` is available, and the tmux keybindings. With `DISTRO=cachyos` it
-also checks the Alacritty config, all four stowed themes, the theme switcher,
-and the CachyOS font package declaration. With `bat` installed, each suite
-passes cleanly on its matching distro.
+`batcat`/`bat` is available, and the tmux keybindings. Both suites check that
+the Alacritty theme TOMLs stay in sync with the tracked Windows Terminal JSON;
+with `DISTRO=cachyos` the suite also checks the Alacritty config, all four
+stowed themes, the switcher's `alacritty msg config` payload, and the CachyOS
+font package declaration. With `bat` installed, each suite passes cleanly on
+its matching distro.
 
 ```sh
 ./test.sh                                  # checks, then an interactive sandbox (TTY only)

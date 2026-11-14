@@ -52,7 +52,9 @@ overrides the default without editing a tracked file. Alacritty skips missing
 imports, so a fresh install starts on Retro 82.
 
 The theme files contain only `[colors.*]` tables. They are generated from the
-`docs/windows-terminal-*.json` files, which remain the source palettes.
+`docs/windows-terminal-*.json` files, which remain the source palettes. Cursor
+text comes from the scheme background and selection text from the foreground,
+matching how Windows Terminal renders both.
 
 `install.sh` backs up an existing `~/.config/alacritty/alacritty.toml`. If you
 already have files under `~/.config/alacritty/themes/` with the same names,
@@ -113,5 +115,7 @@ alacritty-theme tokyo-night
 alacritty-theme retro-82
 ```
 
-The test suite checks that the config and all four themes are stowed, the
-switcher is executable, and the CachyOS package list declares the Nerd Font.
+The test suite checks that the config and all four themes are stowed, that the
+tracked theme files match the Windows Terminal JSON palettes, that the switcher
+is executable and sends the selected theme to the running instance, and that
+the CachyOS package list declares the Nerd Font.

@@ -37,8 +37,9 @@ Each file mirrors the corresponding Omarchy theme's terminal colors
 (`alacritty.toml` / `ghostty.conf` / `kitty.conf`).
 
 On CachyOS, the same JSON files are the source for the tracked Alacritty
-themes. See [alacritty.md](./alacritty.md) for the terminal config and the
-`alacritty-theme` switcher.
+themes, and `test.sh` verifies their palettes match. See
+[alacritty.md](./alacritty.md) for the terminal config and the `alacritty-theme`
+switcher.
 
 ## Match the Omarchy terminal look
 

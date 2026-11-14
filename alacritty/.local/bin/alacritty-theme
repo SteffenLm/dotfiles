@@ -2,7 +2,7 @@
 # Switch the Alacritty color theme and remember it for the next launch.
 set -euo pipefail
 
-theme_dir=${ALACRITTY_THEME_DIR:-$HOME/.config/alacritty/themes}
+theme_dir=$HOME/.config/alacritty/themes
 state_dir=$HOME/.local/state/alacritty
 current=$state_dir/current.toml
 
