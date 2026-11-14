@@ -4,7 +4,7 @@ Terms used across this repo's docs.
 
 - **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
   `starship`, `pkg`, `mise`, `eza`, `zoxide`, `fzf`, `nix`, `opencode`,
-  `ubuntu`) that mirrors
+  `agents`, `ubuntu`) that mirrors
   home-directory paths. Install with `cd ~/dotfiles && stow <pkg>` (run stow
   from inside the repo with the bare package name — `stow` rejects slashes, so
   not `stow dotfiles/tmux`). See [loader-system.md](./loader-system.md).
@@ -46,6 +46,22 @@ Terms used across this repo's docs.
   global-only and v2 rewrites it with a temp file + `rename()`, so it is
   deliberately not stowed (see `opencode/.stow-local-ignore`); `install.sh`
   seeds it only when missing. `opencode.json` is user-managed and not tracked.
+- **`agents`** — the stow package for agent skills. It vendors the
+  `engineering/` and `productivity/` skills from `mattpocock/skills` into
+  `~/.agents/skills/`, and keeps a local `grilling` fork that asks one question
+  at a time. `agents/update.sh` refreshes the tree; `agents/check-grilling.sh`
+  guards the fork. See [skills.md](./skills.md).
+- **skill** — a `SKILL.md` directory (or a root-level `*.md` file) advertised to
+  the agent by ID. OpenCode discovers global skills in `~/.agents/skills`,
+  `~/.claude/skills`, and `~/.config/opencode/skills`, plus project skills in
+  `.opencode/skills`, `.agents/skills`, and `.claude/skills`. Later sources win
+  on duplicate IDs; bodies are not merged. See [skills.md](./skills.md).
+- **`grilling` local fork** — the vendored `grilling` skill keeps the
+  one-question-at-a-time interview flow that upstream replaced with
+  round-by-round "frontier" batches in `a4b2009a1` (2026-07-16). The last
+  upstream one-at-a-time version is `170ad4865` (2026-07-13). The
+  `metadata.local-fork` marker and `agents/check-grilling.sh` make the fork
+  explicit. See [skills.md](./skills.md).
 - **`bat`** — the syntax-highlighting pager used by `ff` previews and
   `MANPAGER`. Ubuntu installs the binary as `batcat`, so the Ubuntu backend
   links `~/.local/bin/bat` to it. `tldr` is intentionally not installed.

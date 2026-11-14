@@ -186,7 +186,7 @@ if [ -L "$HOME/.profile.d" ]; then
 fi
 
 cd "$REPO"
-run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode "$distro"
+run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode agents "$distro"
 
 if [ "$dry_run" = 0 ]; then
   cat <<'EOF'

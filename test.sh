@@ -62,7 +62,7 @@ ln -s "$sbx/does-not-exist" "$sbx/.bashrc.d/zz-dangling"
 
 cd "$REPO" || exit 1
 echo "stowing into $sbx ..."
-"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix opencode ubuntu || exit 1
+"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix opencode agents ubuntu || exit 1
 
 pass=0
 fail=0
@@ -199,6 +199,41 @@ ck "opencode theme valid JSON" "ok" "$o"
 
 o=$(jq -r 'has("defs") and has("theme")' "$sbx/.config/opencode/themes/retro-82.json" 2>/dev/null)
 ck "opencode theme uses v1 format" "true" "$o"
+
+if [ -e "$sbx/.agents/skills/engineering/tdd/SKILL.md" ]; then
+  ck "agents skills stowed" "present" "present"
+else
+  ck "agents skills stowed" "present" "missing"
+fi
+
+if [ -e "$sbx/update.sh" ] || [ -e "$sbx/check-grilling.sh" ]; then
+  ck "agents scripts not stowed" "absent" "present"
+else
+  ck "agents scripts not stowed" "absent" "absent"
+fi
+
+if [ -e "$sbx/.agents/skills/engineering/README.md" ]; then
+  ck "agents README not stowed" "absent" "present"
+else
+  ck "agents README not stowed" "absent" "absent"
+fi
+
+if [ -e "$sbx/.agents/skills/engineering/tdd/agents/openai.yaml" ]; then
+  ck "agents openai metadata not stowed" "absent" "present"
+else
+  ck "agents openai metadata not stowed" "absent" "absent"
+fi
+
+o=$(grep -c 'local-fork: "one-question-at-a-time"' \
+  "$sbx/.agents/skills/productivity/grilling/SKILL.md" 2>/dev/null || true)
+ck "grilling local fork marker" "1" "$o"
+
+o=$(grep -ci 'whole frontier in one round' \
+  "$sbx/.agents/skills/productivity/grilling/SKILL.md" 2>/dev/null || true)
+ck "grilling has no batch instruction" "0" "$o"
+
+o=$("$REPO/agents/check-grilling.sh" 2>&1)
+ck "grilling local fork check" "grilling: local fork intact" "$o"
 
 if [ -e "$sbx/.inputrc" ]; then
   ck "inputrc stowed" "present" "present"

@@ -17,12 +17,13 @@ dotfiles/
 ├── tmux/                           # app config package
 ├── nix/                            # nix.conf + nix profile snippet
 ├── opencode/                       # cli.json snapshot + retro-82 theme
+├── agents/                         # vendored skills + local grilling fork
 ├── ubuntu/ cachyos/ omarchy/       # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
 ├── install.sh                      # package install + one-time stow helper
 ├── test.sh                         # sandbox harness (see below)
 ├── custom/                         # git-ignored, machine-specific (see below)
-└── docs/                           # glossary + this loader doc
+└── docs/                           # glossary, loader, skills, parity
 ```
 
 For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
@@ -38,7 +39,9 @@ For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
 `opencode/.config/opencode/cli.json` is deliberately **not** stowed: v2
 rewrites it with a temp file + `rename()`, so it must stay a real file.
 `opencode/.stow-local-ignore` excludes it, and `install.sh` seeds it from the
-snapshot only when it is missing.
+snapshot only when it is missing. The `agents` package maps
+`agents/.agents/skills/...` to `~/.agents/skills/...`; see
+[skills.md](./skills.md).
 
 ### Correct stow commands
 
@@ -54,8 +57,8 @@ stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's lay
 ```
 
 Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`,
-`zoxide`, `fzf`, `nix`, and `opencode`. Distro package names are `ubuntu`,
-`cachyos`, and `omarchy`;
+`zoxide`, `fzf`, `nix`, `opencode`, and `agents`. Distro package names are
+`ubuntu`, `cachyos`, and `omarchy`;
 stow **exactly one** of them.
 To switch distros, unstow the old package first (`stow -D ubuntu`), because all
 distro packages provide the same backend and `update-os` paths.
@@ -72,7 +75,7 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix opencode agents ubuntu
 ```
 
 `install.sh <distro>` runs that command for you after installing tools. It also
@@ -337,6 +340,18 @@ REPO=/path/to/repo LIVE=/path/to/live ./test.sh          # override paths
 With stdin redirected, the harness prints `RESULTS: <pass> passed, <fail>
 failed` and exits without opening a shell. On a TTY it drops into the sandbox
 shell after the checks so you can inspect aliases, `pkg`, zoxide, and tmux.
+
+## Agent skills (`agents` package)
+
+The `agents` package vendors Matt Pocock's engineering and productivity skill
+collection into `~/.agents/skills` and keeps one local fork: `grilling` asks one
+question at a time instead of upstream's round-by-round batches. `install.sh`
+stows it with the shared packages.
+
+Skills are discovered by ID; when two sources define the same ID, the later
+source wins. `~/.config/opencode/skills` outranks `~/.agents/skills`, and a
+project's `.opencode/skills` outranks both. The package layout, update runbook,
+AI review prompts, and rollback steps live in [skills.md](./skills.md).
 
 ## The `custom/` folder (git-ignored, machine-specific)
 
