@@ -70,7 +70,12 @@ ln -s "$sbx/does-not-exist" "$sbx/.bashrc.d/zz-dangling"
 
 cd "$REPO" || exit 1
 echo "stowing into $sbx ..."
-"$STOW" --no-folding -t "$sbx" shell tmux starship pkg mise eza zoxide fzf nix agents "$DISTRO" || exit 1
+stow_packages=(shell tmux starship pkg mise eza zoxide fzf agents)
+case $DISTRO in
+  ubuntu) stow_packages+=(nix) ;;
+  cachyos) stow_packages+=(alacritty) ;;
+esac
+"$STOW" --no-folding -t "$sbx" "${stow_packages[@]}" "$DISTRO" || exit 1
 
 pass=0
 fail=0
@@ -186,20 +191,52 @@ o=$(PATH=/usr/bin:/bin HOME="$sbx" SNIPPET="$sbx/.bashrc.d/mise" bash -c '. "$SN
 ck "missing mise is silent" "ok" "$o"
 ck "missing mise stderr clean" "" "$(errs)"
 
-o=$(PATH=/usr/bin:/bin HOME="$sbx" SNIPPET="$sbx/.profile.d/nix-os" bash -c '. "$SNIPPET" && printf ok' 2>"$sbx/err")
-ck "missing nix is silent" "ok" "$o"
-ck "missing nix stderr clean" "" "$(errs)"
+if [ "$DISTRO" = ubuntu ]; then
+  o=$(PATH=/usr/bin:/bin HOME="$sbx" SNIPPET="$sbx/.profile.d/nix-os" bash -c '. "$SNIPPET" && printf ok' 2>"$sbx/err")
+  ck "missing nix is silent" "ok" "$o"
+  ck "missing nix stderr clean" "" "$(errs)"
 
-if [ -e "$sbx/.profile.d/nix-os" ]; then
-  ck "nix profile snippet stowed" "present" "present"
-else
-  ck "nix profile snippet stowed" "present" "missing"
+  if [ -e "$sbx/.profile.d/nix-os" ]; then
+    ck "nix profile snippet stowed" "present" "present"
+  else
+    ck "nix profile snippet stowed" "present" "missing"
+  fi
+
+  if [ -e "$sbx/.config/nix/nix.conf" ]; then
+    ck "nix config stowed" "present" "present"
+  else
+    ck "nix config stowed" "present" "missing"
+  fi
 fi
 
-if [ -e "$sbx/.config/nix/nix.conf" ]; then
-  ck "nix config stowed" "present" "present"
-else
-  ck "nix config stowed" "present" "missing"
+if [ "$DISTRO" = cachyos ]; then
+  if [ -e "$sbx/.config/alacritty/alacritty.toml" ]; then
+    ck "alacritty config stowed" "present" "present"
+  else
+    ck "alacritty config stowed" "present" "missing"
+  fi
+
+  o=$(find -L "$sbx/.config/alacritty/themes" -maxdepth 1 -type f -name '*.toml' 2>/dev/null | wc -l)
+  ck "alacritty themes stowed" "4" "$o"
+
+  o=$(grep -c 'background = "#05182E"' "$sbx/.config/alacritty/themes/retro-82.toml" 2>/dev/null || true)
+  ck "alacritty retro-82 palette" "1" "$o"
+
+  o=$(grep -c '~/.local/state/alacritty/current.toml' "$sbx/.config/alacritty/alacritty.toml" 2>/dev/null || true)
+  ck "alacritty current theme import" "1" "$o"
+
+  if [ -x "$sbx/.local/bin/alacritty-theme" ]; then
+    ck "alacritty-theme executable" "yes" "yes"
+  else
+    ck "alacritty-theme executable" "yes" "no"
+  fi
+
+  o=$(HOME="$sbx" PATH="$TEST_PATH" "$sbx/.local/bin/alacritty-theme" list 2>"$sbx/err" | wc -l)
+  ck "alacritty-theme lists themes" "4" "$o"
+  ck "alacritty-theme stderr clean" "" "$(errs)"
+
+  o=$(grep -c '^ttf-jetbrains-mono-nerd$' "$REPO/cachyos-packages.list" 2>/dev/null || true)
+  ck "cachyos font package declared" "1" "$o"
 fi
 
 if [ -e "$sbx/.config/mise/config.toml" ]; then

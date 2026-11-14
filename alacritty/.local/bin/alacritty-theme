@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Switch the Alacritty color theme and remember it for the next launch.
+set -euo pipefail
+
+theme_dir=${ALACRITTY_THEME_DIR:-$HOME/.config/alacritty/themes}
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/alacritty
+current=$state_dir/current.toml
+
+usage() {
+  cat <<'EOF'
+usage: alacritty-theme [theme]
+
+Switch the running Alacritty instance to a theme and remember it for the next
+launch. With no theme, pick one with fzf.
+
+themes:
+  alacritty-theme list
+  alacritty-theme retro-82
+  alacritty-theme catppuccin
+  alacritty-theme catppuccin-latte
+  alacritty-theme tokyo-night
+EOF
+}
+
+available_themes() {
+  local file
+  for file in "$theme_dir"/*.toml; do
+    [ -f "$file" ] || continue
+    basename "${file%.toml}"
+  done | LC_ALL=C sort
+}
+
+case ${1:-} in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  list)
+    available_themes
+    exit 0
+    ;;
+esac
+
+if [ $# -gt 0 ]; then
+  theme=${1%.toml}
+else
+  if ! command -v fzf >/dev/null 2>&1; then
+    printf 'alacritty-theme: fzf is required to pick a theme; pass a theme name\n' >&2
+    usage >&2
+    exit 1
+  fi
+  theme=$(available_themes | fzf --prompt='Alacritty theme> ')
+  [ -n "$theme" ] || exit 1
+fi
+
+theme_file=$theme_dir/$theme.toml
+if [ ! -f "$theme_file" ]; then
+  printf 'alacritty-theme: unknown theme: %s\n' "$theme" >&2
+  printf 'available themes:\n' >&2
+  available_themes | sed 's/^/  /' >&2
+  exit 1
+fi
+
+mkdir -p "$state_dir"
+ln -sfn "$theme_file" "$current"
+
+if command -v alacritty >/dev/null 2>&1 &&
+  alacritty msg config "$(cat "$theme_file")" >/dev/null 2>&1; then
+  printf 'alacritty: switched to %s\n' "$theme"
+else
+  printf 'alacritty: %s saved; it takes effect on the next launch\n' "$theme"
+fi

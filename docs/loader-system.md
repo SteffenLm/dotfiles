@@ -15,10 +15,12 @@ dotfiles/
 ├── shell/ starship/ pkg/ mise/     # shell loader + shared tool snippets
 ├── eza/ zoxide/ fzf/               # eza aliases, zoxide init/cd, fzf keys
 ├── tmux/                           # app config package
-├── nix/                            # nix.conf + nix profile snippet
+├── alacritty/                      # CachyOS terminal config + theme switcher
+├── nix/                            # nix.conf + snippet (Ubuntu only)
 ├── agents/                         # vendored skills + local grilling fork
 ├── ubuntu/ cachyos/                # exactly one distro package per machine
 ├── packages.list                   # generic tool list (not a stow package)
+├── cachyos-packages.list           # CachyOS-only desktop packages
 ├── install.sh                      # package install + one-time stow helper
 ├── test.sh                         # sandbox harness (see below)
 ├── custom/                         # git-ignored, machine-specific (see below)
@@ -32,13 +34,16 @@ For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
 `mise/.config/mise/config.toml` → `~/.config/mise/config.toml`,
 `shell/.inputrc` → `~/.inputrc`,
 `zoxide/.alias.d/zoxide` → `~/.alias.d/zoxide`,
-`nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf`. OpenCode is a mise tool,
-not a stow package: it has no tracked CLI config or theme, and its `cli.json`
-is owned by OpenCode. Select the built-in `system` theme so it inherits the
-terminal palette (see [windows-terminal.md](./windows-terminal.md)). The
-`agents` package maps
+`alacritty/.config/alacritty/alacritty.toml` →
+`~/.config/alacritty/alacritty.toml`, and
+`nix/.config/nix/nix.conf` → `~/.config/nix/nix.conf` (Ubuntu only). OpenCode is
+a mise tool, not a stow package: it has no tracked CLI config or theme, and its
+`cli.json` is owned by OpenCode. Select the built-in `system` theme so it
+inherits the terminal palette (see [windows-terminal.md](./windows-terminal.md)).
+The `agents` package maps
 `agents/.agents/skills/...` to `~/.agents/skills/...`; see
-[skills.md](./skills.md).
+[skills.md](./skills.md). The Alacritty package and its theme switcher are
+documented in [alacritty.md](./alacritty.md).
 
 ### Correct stow commands
 
@@ -54,10 +59,11 @@ stow -R <pkg>  # restow (unlink then re-link), e.g. after editing a folder's lay
 ```
 
 Shared package names are `shell`, `tmux`, `starship`, `pkg`, `mise`, `eza`,
-`zoxide`, `fzf`, `nix`, and `agents`. Distro package names are
-`ubuntu` and `cachyos`; stow **exactly one** of them.
-To switch distros, unstow the old package first (`stow -D ubuntu`), because all
-distro packages provide the same backend and `update-os` paths.
+`zoxide`, `fzf`, and `agents`. `nix` is stowed only on Ubuntu; `alacritty` is
+stowed only on CachyOS. Distro package names are `ubuntu` and `cachyos`; stow
+**exactly one** of them. To switch distros, unstow the old package first
+(`stow -D ubuntu`), because all distro packages provide the same backend and
+`update-os` paths.
 
 Omarchy is deliberately not an install target. A real Omarchy machine already
 ships its own shell, tmux, mise, and opencode configuration; this repo targets
@@ -76,12 +82,15 @@ A normal install stows the shared packages plus one distro package:
 
 ```sh
 cd ~/dotfiles
-stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix agents ubuntu
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf agents nix ubuntu
+# CachyOS:
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf agents alacritty cachyos
 ```
 
-`install.sh <distro>` runs that command for you after installing tools. It also
-backs up real shell/tmux files once, because stow refuses to replace regular
-files.
+`install.sh <distro>` runs the matching command for you after installing tools.
+Nix is Ubuntu-only, and the Alacritty config is CachyOS-only. The installer
+also backs up real shell/tmux files once, because stow refuses to replace
+regular files.
 
 ## The loader system
 
@@ -308,18 +317,21 @@ package database for repo packages. It exits non-zero if anything is missing.
 1. validates the distro and sources its backend through the `pkg` dispatcher;
 2. runs `pkg update`;
 3. installs `stow` (needed for the next step) and every entry in
-   `packages.list`;
+   `packages.list`, plus `<distro>-packages.list` when that file exists
+   (`cachyos-packages.list` adds Alacritty and the Nerd Font);
 4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
    `~/.inputrc`, `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
    `~/.config/starship.toml`, `~/.config/mise/config.toml`,
-   `~/.config/nix/nix.conf`, and `~/.config/dotfiles/pkg-backend.sh` to
+   `~/.config/dotfiles/pkg-backend.sh`, plus `~/.config/nix/nix.conf` on
+   Ubuntu and `~/.config/alacritty/alacritty.toml` on CachyOS, to
    `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
    the current repo, then removes stale `~/.config/opencode/tui.json` and
    `~/.config/opencode/themes/retro-82.json` symlinks that point into the
    repo; it never writes `~/.config/opencode/cli.json`;
-5. refuses to stow while `~/.profile.d` is still a whole-folder symlink, then
-   stows `shell tmux starship pkg mise eza zoxide fzf nix agents <distro>`
-   with `--no-folding`;
+5. on Ubuntu, refuses to stow while `~/.profile.d` is still a whole-folder
+   symlink, then stows the shared packages plus `nix` and `ubuntu`; on CachyOS
+   it stows the shared packages plus `alacritty` and `cachyos`, all with
+   `--no-folding`;
 6. runs `mise --cd mise/.config/mise install opencode`, so opencode is installed
    from the tracked config (also with `--no-stow`).
 
@@ -339,8 +351,10 @@ is `ubuntu`.
 The automated checks cover the loader, readline (`~/.inputrc`), history and
 completion, starship prompt/config, the interactive environment, the ported
 aliases and functions, the `pkg` backend dry-runs, the bat shim when
-`batcat`/`bat` is available, and the tmux keybindings. With `bat` installed the
-suite currently passes cleanly.
+`batcat`/`bat` is available, and the tmux keybindings. With `DISTRO=cachyos` it
+also checks the Alacritty config, all four stowed themes, the theme switcher,
+and the CachyOS font package declaration. With `bat` installed, each suite
+passes cleanly on its matching distro.
 
 ```sh
 ./test.sh                                  # checks, then an interactive sandbox (TTY only)

@@ -78,17 +78,25 @@ run() {
   "$@"
 }
 
+read_packages() {
+  local file=$1 line
+  while IFS= read -r line || [ -n "$line" ]; do
+    line=${line%%#*}
+    line=${line#"${line%%[![:space:]]*}"}
+    line=${line%"${line##*[![:space:]]}"}
+    [ -n "$line" ] || continue
+    packages+=("$line")
+  done < "$file"
+}
+
 packages=()
-while IFS= read -r line || [ -n "$line" ]; do
-  line=${line%%#*}
-  line=${line#"${line%%[![:space:]]*}"}
-  line=${line%"${line##*[![:space:]]}"}
-  [ -n "$line" ] || continue
-  packages+=("$line")
-done < "$REPO/packages.list"
+read_packages "$REPO/packages.list"
+if [ -r "$REPO/${distro}-packages.list" ]; then
+  read_packages "$REPO/${distro}-packages.list"
+fi
 
 if [ ${#packages[@]} -eq 0 ]; then
-  printf 'install.sh: packages.list is empty\n' >&2
+  printf 'install.sh: no packages found in packages.list or %s-packages.list\n' "$distro" >&2
   exit 1
 fi
 
@@ -128,20 +136,30 @@ if [ "$dry_run" = 0 ] && ! command -v stow >/dev/null 2>&1; then
   exit 1
 fi
 
+backup_files=(
+  "$HOME/.bashrc"
+  "$HOME/.profile"
+  "$HOME/.bash_profile"
+  "$HOME/.inputrc"
+  "$HOME/.tmux.conf"
+  "$HOME/.config/tmux/tmux.conf"
+  "$HOME/.config/starship.toml"
+  "$HOME/.config/mise/config.toml"
+  "$HOME/.config/dotfiles/pkg-backend.sh"
+)
+if [ "$distro" = ubuntu ]; then
+  backup_files+=("$HOME/.config/nix/nix.conf")
+elif [ "$distro" = cachyos ]; then
+  backup_files+=("$HOME/.config/alacritty/alacritty.toml")
+fi
+
 backup_existing() {
   local timestamp backup_dir file target found=0
 
   timestamp=$(date +%Y%m%d-%H%M%S)
   backup_dir="$HOME/.dotfiles-backup-$timestamp"
 
-  for file in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.bash_profile" \
-    "$HOME/.inputrc" \
-    "$HOME/.tmux.conf" \
-    "$HOME/.config/tmux/tmux.conf" \
-    "$HOME/.config/starship.toml" \
-    "$HOME/.config/mise/config.toml" \
-    "$HOME/.config/nix/nix.conf" \
-    "$HOME/.config/dotfiles/pkg-backend.sh"; do
+  for file in "${backup_files[@]}"; do
     [ -e "$file" ] || [ -L "$file" ] || continue
 
     target=$(readlink -f -- "$file" 2>/dev/null || true)
@@ -193,7 +211,7 @@ if [ -L "$opencode_theme" ]; then
   esac
 fi
 
-if [ -L "$HOME/.profile.d" ]; then
+if [ "$distro" = ubuntu ] && [ -L "$HOME/.profile.d" ]; then
   printf 'install.sh: %s is a symlink; it must be a real directory before stowing nix\n' \
     "$HOME/.profile.d" >&2
   printf 'install.sh: convert it to a manifold directory (see docs/loader-system.md)\n' >&2
@@ -203,8 +221,18 @@ if [ -L "$HOME/.profile.d" ]; then
   printf 'install.sh: dry run only; a real run would stop before stow\n' >&2
 fi
 
+stow_packages=(shell tmux starship pkg mise eza zoxide fzf agents)
+case $distro in
+  ubuntu)
+    stow_packages+=(nix)
+    ;;
+  cachyos)
+    stow_packages+=(alacritty)
+    ;;
+esac
+
 cd "$REPO"
-run stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf nix agents "$distro"
+run stow --no-folding -t "$HOME" "${stow_packages[@]}" "$distro"
 
 if [ "$dry_run" = 0 ]; then
   cat <<'EOF'
@@ -214,4 +242,7 @@ Next steps:
   2. Verify: type pkg; type update-os; type z; alias ls; pkg present tmux
   3. After verifying, switch the login shell: chsh -s /usr/bin/bash
 EOF
+  if [ "$distro" = cachyos ]; then
+    printf '  4. Pick a terminal theme: alacritty-theme\n'
+  fi
 fi

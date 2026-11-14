@@ -1,0 +1,4 @@
+# CachyOS-only desktop packages installed by install.sh.
+# The common tool set lives in packages.list.
+alacritty
+ttf-jetbrains-mono-nerd

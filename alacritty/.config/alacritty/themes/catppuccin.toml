@@ -1,0 +1,33 @@
+# Generated from docs/windows-terminal-catppuccin.json.
+
+[colors.primary]
+background = "#1E1E2E"
+foreground = "#CDD6F4"
+
+[colors.cursor]
+text = "#1E1E2E"
+cursor = "#CDD6F4"
+
+[colors.selection]
+text = "#CDD6F4"
+background = "#45475A"
+
+[colors.normal]
+black = "#1E1E2E"
+red = "#F38BA8"
+green = "#A6E3A1"
+yellow = "#F9E2AF"
+blue = "#89B4FA"
+magenta = "#F5C2E7"
+cyan = "#94E2D5"
+white = "#CDD6F4"
+
+[colors.bright]
+black = "#585B70"
+red = "#F38BA8"
+green = "#A6E3A1"
+yellow = "#F9E2AF"
+blue = "#89B4FA"
+magenta = "#F5C2E7"
+cyan = "#94E2D5"
+white = "#CDD6F4"

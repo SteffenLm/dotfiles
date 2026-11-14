@@ -1,0 +1,33 @@
+# Generated from docs/windows-terminal-tokyo-night.json.
+
+[colors.primary]
+background = "#1A1B26"
+foreground = "#A9B1D6"
+
+[colors.cursor]
+text = "#1A1B26"
+cursor = "#C0CAF5"
+
+[colors.selection]
+text = "#A9B1D6"
+background = "#292E42"
+
+[colors.normal]
+black = "#1A1B26"
+red = "#F7768E"
+green = "#9ECE6A"
+yellow = "#E0AF68"
+blue = "#7AA2F7"
+magenta = "#AD8EE6"
+cyan = "#449DAB"
+white = "#A9B1D6"
+
+[colors.bright]
+black = "#414868"
+red = "#FF7A93"
+green = "#B9F27C"
+yellow = "#FF9E64"
+blue = "#7DA6FF"
+magenta = "#BB9AF7"
+cyan = "#0DB9D7"
+white = "#C0CAF5"

@@ -16,12 +16,14 @@ default branch is not `main`.
 ## Current state
 
 The portable parity work is implemented and stowed on the non-Omarchy targets
-(Ubuntu and CachyOS).
+(Ubuntu and CachyOS). CachyOS also gets the Alacritty appearance package and
+theme switcher so the ANSI palette matches the Windows Terminal schemes.
 
 - `bat` and `yt-dlp` are installed. On Ubuntu, `~/.local/bin/bat` resolves to
   `/usr/bin/batcat`.
-- `./test.sh </dev/null` passes the full suite (78 checks at the time of
-  writing, with `bat` available).
+- `./test.sh </dev/null` passes the Ubuntu suite (78 checks at the time of
+  writing, with `bat` available). `DISTRO=cachyos ./test.sh </dev/null` passes
+  82 checks, including the Alacritty config and theme switcher.
 - The live tmux server was reloaded in place with
   `tmux source-file ~/.config/tmux/tmux.conf`; the session and windows were
   kept. `prefix ?` opens the annotated pager popup on tmux 3.4.
@@ -41,6 +43,7 @@ The portable parity work is implemented and stowed on the non-Omarchy targets
 | `default/bash/aliases` (`ff`, `eff`, `sff`) | `fzf/.alias.d/ff` | adapted | Only defined when both `fzf` and `bat` are present. |
 | `default/bash/init` (starship) | `starship/.bashrc.d/starship` | adapted | Uses `starship init bash --print-full-init`. Mise, zoxide, and fzf init already live in their own snippets. |
 | `config/starship.toml` | `starship/.config/starship.toml` | copied | Cyan directory/git prompt with `❯`. Needs a Nerd Font for the git glyphs. |
+| `config/alacritty` | `alacritty/.config/alacritty` | adapted | CachyOS-only. Font, padding, and block cursor match Omarchy; four palettes come from the tracked Windows Terminal JSON. `alacritty-theme` switches them live. |
 | `config/tmux/tmux.conf` | `tmux/.config/tmux/tmux.conf` | adapted | Upstream keybindings and theme, plus a tmux < 3.5 guard for `extended-keys-format` and a local `?` command. |
 | `bin/omarchy-menu-tmux-keybindings` | `tmux/.local/bin/tmux-keybindings` | adapted | Standalone bash/tmux utility: no `omarchy-*` binaries and no `OMARCHY_PATH` fallback. |
 
@@ -72,6 +75,9 @@ Deliberately skipped:
   backend links `~/.local/bin/bat` → `batcat`; on Arch the binary is already
   `bat`.
 - `yt-dlp` is in `packages.list`.
+- On CachyOS, `cachyos-packages.list` adds `alacritty` and
+  `ttf-jetbrains-mono-nerd`, and the `alacritty` stow package carries the
+  appearance config and color themes. See [alacritty.md](./alacritty.md).
 - `opencode` is not in `packages.list`; it is a mise tool tracked as `latest`
   in `mise/.config/mise/config.toml`, installed by `install.sh`, and updated by
   `mup`. No OpenCode theme is tracked; select the built-in `system` theme so it
@@ -140,9 +146,18 @@ When refreshing:
 ```sh
 cd ~/dotfiles
 env -u __DOTFILES_PROFILE_D_LOADED ./test.sh </dev/null
+DISTRO=cachyos env -u __DOTFILES_PROFILE_D_LOADED ./test.sh </dev/null
 
 stow --no-folding -t "$HOME" shell starship fzf tmux
 env -u __DOTFILES_PROFILE_D_LOADED bash -l
+```
+
+On CachyOS, also check the terminal:
+
+```sh
+alacritty-theme list
+alacritty-theme tokyo-night
+alacritty-theme retro-82
 ```
 
 Run `bash -l` interactively: a non-interactive `bash -l` skips `~/.bashrc` by

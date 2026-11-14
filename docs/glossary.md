@@ -3,10 +3,11 @@
 Terms used across this repo's docs.
 
 - **stow package** — a top-level directory in this repo (e.g. `tmux`, `shell`,
-  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `fzf`, `nix`, `agents`, `ubuntu`)
-  that mirrors home-directory paths. Install with `cd ~/dotfiles && stow <pkg>` (run stow
-  from inside the repo with the bare package name — `stow` rejects slashes, so
-  not `stow dotfiles/tmux`). See [loader-system.md](./loader-system.md).
+  `starship`, `pkg`, `mise`, `eza`, `zoxide`, `fzf`, `alacritty`, `nix`,
+  `agents`, `ubuntu`) that mirrors home-directory paths. Install with
+  `cd ~/dotfiles && stow <pkg>` (run stow from inside the repo with the bare
+  package name — `stow` rejects slashes, so not `stow dotfiles/tmux`). See
+  [loader-system.md](./loader-system.md).
 - **distro package** — one of `ubuntu` or `cachyos`. It supplies the `pkg`
   backend and the `update-os` alias. Stow exactly one per machine. Omarchy is
   deliberately not a target; a real Omarchy install already ships its own
@@ -19,7 +20,9 @@ Terms used across this repo's docs.
   (`PKG_MAP`), non-repo installers (`PKG_METHOD`), and the actual apt/pacman
   commands.
 - **`packages.list`** — the repo-root list of generic tool names installed by
-  `install.sh`. It is not a stow package and is never linked into `$HOME`.
+  `install.sh`. A distro can add `<distro>-packages.list` next to it; CachyOS
+  uses `cachyos-packages.list` for desktop-only Alacritty and Nerd Font
+  packages. Neither file is a stow package or linked into `$HOME`.
 - **`mise`** — the runtime-manager package. `~/.bashrc.d/mise` runs
   `mise activate bash` (after `set +h`), and
   `~/.config/mise/config.toml` holds the tracked global `[tools]` versions
@@ -30,11 +33,17 @@ Terms used across this repo's docs.
   tracked config with `mise --cd mise/.config/mise install opencode`; the other
   tools are installed on demand with `mise install`, and `mup` updates the
   tracked tools. Skipped when `mise` is absent.
-- **`nix`** — the package that tracks `~/.config/nix/nix.conf` (flakes,
-  sandbox, aarch64 emulation) and `~/.profile.d/nix-os`, which
+- **`nix`** — the Ubuntu-only package that tracks `~/.config/nix/nix.conf`
+  (flakes, sandbox, aarch64 emulation) and `~/.profile.d/nix-os`, which
   sources `$HOME/.nix-profile/etc/profile.d/nix.sh` when Nix is installed and is
   silent otherwise. Nix itself is opt-in via `pkg install nix`, not part of
-  `packages.list`.
+  `packages.list`. CachyOS does not stow this package.
+- **`alacritty`** — the CachyOS-only terminal package:
+  `~/.config/alacritty/alacritty.toml`, four color themes generated from the
+  Windows Terminal JSON, and `~/.local/bin/alacritty-theme`, which switches the
+  running instance live and persists the choice in
+  `~/.local/state/alacritty/current.toml`. See
+  [alacritty.md](./alacritty.md).
 - **`eza`** — the alias package (`~/.alias.d/eza`) that maps `ls`, `lsa`, `lt`,
   and `lta` to Omarchy's exact `eza` definitions. Skipped when `eza` is absent.
 - **`zoxide`** — the package with two snippets: `~/.bashrc.d/zoxide` runs
@@ -54,9 +63,10 @@ Terms used across this repo's docs.
   `docs/windows-terminal-*.json`: `Retro 82`, `Catppuccin`,
   `Catppuccin Latte`, and `Tokyo Night`. Each is extracted from the matching
   Omarchy theme (`/usr/share/omarchy/themes/<theme>/colors.toml`). Paste the
-  object into `"schemes"` and select it with `"colorScheme"`. Windows Terminal
-  answers OpenCode's palette queries, so the `system` theme inherits the same
-  colors tmux uses.
+  object into `"schemes"` and select it with `"colorScheme"`. The same JSON
+  files are the source for the CachyOS Alacritty themes. Windows Terminal and
+  Alacritty both define the ANSI palette, so OpenCode's `system` theme and tmux
+  inherit the same colors.
 - **`agents`** — the stow package for agent skills. It vendors the
   `engineering/` and `productivity/` skills from `mattpocock/skills` into
   `~/.agents/skills/`, and keeps a local `grilling` fork that asks one question
@@ -81,9 +91,10 @@ Terms used across this repo's docs.
   history search on Up/Down, Tab menu-complete, case-insensitive completion,
   and colored completion listings.
 - **`install.sh`** — the one-shot installer: `./install.sh <distro>`. Installs
-  `packages.list`, backs up real shell/tmux files once, then stows the shared
-  packages plus the chosen distro package. Supports `--dry-run` and
-  `--no-stow`.
+  `packages.list` plus `<distro>-packages.list`, backs up real shell/tmux files
+  once, then stows the shared packages plus the distro-specific `nix` (Ubuntu)
+  or `alacritty` (CachyOS) and the chosen distro package. Supports `--dry-run`
+  and `--no-stow`.
 - **sandbox harness** — `test.sh`, which stows packages into a temporary
   `$HOME` and runs shell/tmux checks without touching the live home directory.
   `DISTRO` selects the distro package to stow (default `ubuntu`; use
@@ -122,7 +133,7 @@ Terms used across this repo's docs.
   `~/.bashrc.d`, `~/.alias.d`) that holds one per-tool symlink so snippets from
   many packages merge in one place the loader reads. `~/.profile.d` is a real
   directory in normal operation; a whole-folder symlink is a legacy state that
-  `install.sh` refuses to stow through.
+  the Ubuntu install refuses to stow nix through.
 - **custom package** — the git-ignored `custom/` folder holding non-corporate
   machine-specific files such as local aliases that must not be committed.
   Wired into the manifold directories via per-file symlinks. See

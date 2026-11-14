@@ -36,6 +36,10 @@ Recent Windows Terminal versions also accept a light/dark pair, for example
 Each file mirrors the corresponding Omarchy theme's terminal colors
 (`alacritty.toml` / `ghostty.conf` / `kitty.conf`).
 
+On CachyOS, the same JSON files are the source for the tracked Alacritty
+themes. See [alacritty.md](./alacritty.md) for the terminal config and the
+`alacritty-theme` switcher.
+
 ## Match the Omarchy terminal look
 
 Omarchy's alacritty, ghostty, and kitty configs share one appearance setup.

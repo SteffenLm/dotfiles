@@ -1,0 +1,33 @@
+# Generated from docs/windows-terminal-catppuccin-latte.json.
+
+[colors.primary]
+background = "#EFF1F5"
+foreground = "#4C4F69"
+
+[colors.cursor]
+text = "#EFF1F5"
+cursor = "#4C4F69"
+
+[colors.selection]
+text = "#4C4F69"
+background = "#CCD0DA"
+
+[colors.normal]
+black = "#EFF1F5"
+red = "#D20F39"
+green = "#40A02B"
+yellow = "#DF8E1D"
+blue = "#1E66F5"
+magenta = "#EA76CB"
+cyan = "#179299"
+white = "#4C4F69"
+
+[colors.bright]
+black = "#ACB0BE"
+red = "#D20F39"
+green = "#40A02B"
+yellow = "#DF8E1D"
+blue = "#1E66F5"
+magenta = "#EA76CB"
+cyan = "#179299"
+white = "#4C4F69"
