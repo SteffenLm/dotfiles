@@ -46,7 +46,7 @@ theme switcher so the ANSI palette matches the Windows Terminal schemes.
 | `default/bash/aliases` (`ff`, `eff`, `sff`) | `fzf/.alias.d/ff` | adapted | Only defined when both `fzf` and `bat` are present. |
 | `default/bash/init` (starship) | `starship/.bashrc.d/starship` | adapted | Uses `starship init bash --print-full-init`. Mise, zoxide, and fzf init already live in their own snippets. |
 | `config/starship.toml` | `starship/.config/starship.toml` | copied | Cyan directory/git prompt with `❯`. Needs a Nerd Font for the git glyphs. |
-| `config/alacritty` | `alacritty/.config/alacritty` | adapted | CachyOS-only. Font, padding, and block cursor match Omarchy; four palettes come from the tracked Windows Terminal JSON. `alacritty-theme` switches them live. |
+| `config/alacritty` | `alacritty/.config/alacritty` | adapted | CachyOS-only. Font, padding, and block cursor match Omarchy; window opacity (0.8), 100×30 dimensions, full decorations, and a host-specific title are restored from the previous config. Four palettes come from the tracked Windows Terminal JSON. `alacritty-theme` switches them live. |
 | `config/tmux/tmux.conf` | `tmux/.config/tmux/tmux.conf` | adapted | Upstream keybindings and theme, plus a tmux < 3.5 guard for `extended-keys-format` and a local `?` command. |
 | `bin/omarchy-menu-tmux-keybindings` | `tmux/.local/bin/tmux-keybindings` | adapted | Standalone bash/tmux utility: no `omarchy-*` binaries and no `OMARCHY_PATH` fallback. |
 
@@ -90,9 +90,9 @@ Deliberately skipped:
   `ttf-jetbrains-mono-nerd`, and the `alacritty` stow package carries the
   appearance config and color themes. See [alacritty.md](./alacritty.md).
 - `opencode` is not in `packages.list`; it is a mise tool tracked as `latest`
-  in `mise/.config/mise/config.toml`, installed by `install.sh`, and updated by
-  `mup`. No OpenCode theme is tracked; select the built-in `system` theme so it
-  inherits the terminal palette (see
+  in `mise/.config/mise/config.toml`, installed by `install.sh` after its Node
+  dependency, and updated by `mup`. No OpenCode theme is tracked; select the
+  built-in `system` theme so it inherits the terminal palette (see
   [windows-terminal.md](./windows-terminal.md)).
 - `tldr` is intentionally excluded.
 - The Windows Terminal Retro 82 scheme

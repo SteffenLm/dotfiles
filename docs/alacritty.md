@@ -37,7 +37,8 @@ alacritty/.config/alacritty/themes/*.toml         -> ~/.config/alacritty/themes/
 alacritty/.local/bin/alacritty-theme              -> ~/.local/bin/alacritty-theme
 ```
 
-`alacritty.toml` holds the font, padding, cursor, and the import order:
+`alacritty.toml` holds the font, padding, cursor, window settings (100×30
+dimensions, 0.8 opacity, title, and full decorations), and the import order:
 
 ```toml
 [general]

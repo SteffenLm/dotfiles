@@ -29,10 +29,13 @@ Terms used across this repo's docs.
   (Node `26.13.1`, Temurin JDK `21.0.13+9.0.LTS`, Rust `stable`, and opencode
   `latest`; activation also exports `JAVA_HOME`). Its
   `idiomatic_version_file_enable_tools = ["rust"]` setting makes mise read
-  project `rust-toolchain.toml` pins. `install.sh` installs opencode from the
-  tracked config with `mise --cd mise/.config/mise install opencode`; the other
-  tools are installed on demand with `mise install`, and `mup` updates the
-  tracked tools. Skipped when `mise` is absent.
+  project `rust-toolchain.toml` pins. `install.sh` installs Node first, then
+  opencode from the tracked config, because opencode's npm backend needs the
+  configured Node runtime: `mise --cd mise/.config/mise install node`, then
+  `install opencode`. `pkg install opencode` installs the same Node dependency
+  through `PKG_MISE_DEPS`. The other tools are installed on demand with
+  `mise install`, and `mup` updates the tracked tools. Skipped when `mise` is
+  absent.
 - **`nix`** — the Ubuntu-only package that tracks `~/.config/nix/nix.conf`
   (flakes, sandbox, aarch64 emulation) and `~/.profile.d/nix-os`, which
   sources `$HOME/.nix-profile/etc/profile.d/nix.sh` when Nix is installed and is

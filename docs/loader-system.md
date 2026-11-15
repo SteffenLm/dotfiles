@@ -280,9 +280,10 @@ Each backend owns:
   `nvim` binary name. `pkg remove nix` deletes `/nix` and the per-user Nix
   state but keeps the tracked `~/.config/nix/nix.conf`.
 - `opencode` is a mise tool on both distros, tracked as `latest` in
-  `mise/.config/mise/config.toml`; `install.sh` installs it from that tracked
-  config with `mise --cd mise/.config/mise install opencode`, and `mup` updates
-  it. `pkg install opencode` and `pkg remove opencode` delegate to mise, and
+  `mise/.config/mise/config.toml`; `install.sh` installs its Node dependency
+  first (`mise --cd mise/.config/mise install node`), then opencode itself, and
+  `mup` updates it. `pkg install opencode` declares the same dependency through
+  `PKG_MISE_DEPS`, `pkg remove opencode` delegates to mise, and
   `pkg present opencode` also checks the mise shim. `install.sh` removes a
   legacy `~/.local/bin/opencode` left by the previous GitHub installer. No
   OpenCode theme is tracked; the CLI settings file is owned by OpenCode, and
@@ -337,8 +338,9 @@ package database for repo packages. It exits non-zero if anything is missing.
    repo; it never writes `~/.config/opencode/cli.json`;
 5. stows the shared packages plus `nix` and `ubuntu` on Ubuntu, or plus
    `alacritty` and `cachyos` on CachyOS, all with `--no-folding`;
-6. runs `mise --cd mise/.config/mise install opencode`, so opencode is installed
-   from the tracked config (also with `--no-stow`).
+6. runs `mise --cd mise/.config/mise install node`, then
+   `mise --cd mise/.config/mise install opencode`, so opencode's npm backend
+   finds its Node runtime from the tracked config (also with `--no-stow`).
 
 Options: `--dry-run` prints every package/backup/stow command without running
 it; `--no-stow` installs tools but stops before backup and stow. The script
