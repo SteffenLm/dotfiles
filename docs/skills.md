@@ -27,7 +27,7 @@ stow --no-folding -t "$HOME" agents
 ```
 
 `--no-folding` creates real directories and per-file symlinks, so the vendored
-skills coexist with the Omarchy symlinks already in `~/.agents/skills`.
+skills coexist with machine-local skill symlinks already in `~/.agents/skills`.
 `install.sh` includes `agents` in its stow list. The scripts and the upstream
 category READMEs stay in the repo; `.stow-local-ignore` prevents stow from
 linking them into the home directory.

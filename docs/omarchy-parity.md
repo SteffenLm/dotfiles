@@ -199,7 +199,8 @@ cd ~/dotfiles
 env -u __DOTFILES_PROFILE_D_LOADED ./test.sh </dev/null
 DISTRO=cachyos env -u __DOTFILES_PROFILE_D_LOADED ./test.sh </dev/null
 
-stow --no-folding -t "$HOME" shell starship fzf tmux
+stow --no-folding -t "$HOME" shell tmux starship pkg mise eza zoxide fzf agents nix ubuntu
+# CachyOS: replace "nix ubuntu" with "alacritty cachyos"
 env -u __DOTFILES_PROFILE_D_LOADED bash -l
 ```
 

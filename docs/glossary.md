@@ -17,8 +17,8 @@ Terms used across this repo's docs.
   active distro backend.
 - **pkg backend** — `<distro>/.config/dotfiles/pkg-backend.sh`, stowed to
   `~/.config/dotfiles/pkg-backend.sh`. It owns the native package names
-  (`PKG_MAP`), non-repo installers (`PKG_METHOD`), and the actual apt/pacman
-  commands.
+  (`PKG_MAP`), non-repo installers (`PKG_METHOD`), mise-managed tools and their
+  dependencies (`PKG_MISE_DEPS`), and the actual apt/pacman commands.
 - **`packages.list`** — the repo-root list of generic tool names installed by
   `install.sh`. A distro can add `<distro>-packages.list` next to it; CachyOS
   uses `cachyos-packages.list` for desktop-only Alacritty and Nerd Font
@@ -94,10 +94,11 @@ Terms used across this repo's docs.
   history search on Up/Down, Tab menu-complete, case-insensitive completion,
   and colored completion listings.
 - **`install.sh`** — the one-shot installer: `./install.sh <distro>`. Installs
-  `packages.list` plus `<distro>-packages.list`, backs up real shell/tmux files
-  once, then stows the shared packages plus the distro-specific `nix` (Ubuntu)
-  or `alacritty` (CachyOS) and the chosen distro package. Supports `--dry-run`
-  and `--no-stow`.
+  `packages.list` plus `<distro>-packages.list`, installs Node and then
+  opencode from the tracked mise config, backs up real shell/tmux files once,
+  migrates dangling manifold links, then stows the shared packages plus the
+  distro-specific `nix` (Ubuntu) or `alacritty` (CachyOS) and the chosen distro
+  package. Supports `--dry-run` and `--no-stow`.
 - **sandbox harness** — `test.sh`, which stows packages into a temporary
   `$HOME` and runs shell/tmux checks without touching the live home directory.
   `DISTRO` selects the distro package to stow (default `ubuntu`; use
@@ -135,8 +136,9 @@ Terms used across this repo's docs.
 - **manifold directory** — a real home directory (`~/.profile.d`,
   `~/.bashrc.d`, `~/.alias.d`) that holds one per-tool symlink so snippets from
   many packages merge in one place the loader reads. A whole-folder symlink is
-  a legacy state; `install.sh` replaces it when dangling and otherwise refuses
-  to stow until it is converted.
+  a legacy state; `install.sh` replaces it with a real directory when dangling
+  (including `~/.profile.d` on Ubuntu) and otherwise refuses to stow until it
+  is converted.
 - **custom package** — the git-ignored `custom/` folder holding non-corporate
   machine-specific files such as local aliases that must not be committed.
   Wired into the manifold directories via per-file symlinks. See

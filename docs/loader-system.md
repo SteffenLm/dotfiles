@@ -24,7 +24,7 @@ dotfiles/
 ├── install.sh                      # package install + one-time stow helper
 ├── test.sh                         # sandbox harness (see below)
 ├── custom/                         # git-ignored, machine-specific (see below)
-└── docs/                           # glossary, loader, skills, parity
+└── docs/                           # glossary, loader, skills, parity, terminals
 ```
 
 For example `tmux/.config/tmux/tmux.conf` → `~/.config/tmux/tmux.conf`,
@@ -184,8 +184,8 @@ font: SSH transmits the glyphs and the client renders them.
 
 Both entry points prepend `$HOME/.local/bin` to `PATH` with a guard, so the
 directory appears exactly once. This is where Ubuntu gets standalone tools that
-are not in apt (`starship`, `mise`, `neovim`, `kubectl`) and where
-the `fd` shim is created. Neovim is unpacked under `~/.local/opt` and reached
+are not in apt (`starship`, `mise`, `neovim`, `kubectl`) and where the `bat` and
+`fd` shims are created. Neovim is unpacked under `~/.local/opt` and reached
 through a `~/.local/bin/nvim` symlink.
 
 Distro-provided tools stay in `/usr/bin`; `~/.local/bin` only fills the gaps.
@@ -200,6 +200,9 @@ named after the tool. Machine-local snippets from `custom/` and
 A whole-folder symlink is a legacy state from older installs. `install.sh`
 replaces one automatically when it is dangling, but stops when it still
 resolves: convert it manually so machine-local snippets are preserved.
+
+Ubuntu example (on CachyOS, `update-os` points at `../dotfiles/cachyos/...` and
+there is no `nix-os`):
 
 ```
 ~/.profile.d/
@@ -324,23 +327,26 @@ package database for repo packages. It exits non-zero if anything is missing.
 3. installs `stow` (needed for the next step) and every entry in
    `packages.list`, plus `<distro>-packages.list` when that file exists
    (`cachyos-packages.list` adds Alacritty and the Nerd Font);
-4. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
+4. runs `mise --cd mise/.config/mise install node`, then
+   `mise --cd mise/.config/mise install opencode`, so opencode's npm backend
+   finds its Node runtime from the tracked config (also with `--no-stow`), and
+   removes a legacy `~/.local/bin/opencode` left by the previous GitHub
+   installer;
+5. backs up existing `~/.bashrc`, `~/.profile`, `~/.bash_profile`,
    `~/.inputrc`, `~/.tmux.conf`, `~/.config/tmux/tmux.conf`,
    `~/.config/starship.toml`, `~/.config/mise/config.toml`,
    `~/.config/dotfiles/pkg-backend.sh`, plus `~/.config/nix/nix.conf` on
    Ubuntu and `~/.config/alacritty/alacritty.toml` on CachyOS, to
    `~/.dotfiles-backup-<timestamp>/`, skipping symlinks that already point at
-   the current repo; replaces dangling whole-folder symlinks at
-   `~/.bashrc.d`, `~/.alias.d`, and (on Ubuntu) `~/.profile.d` with real
-   directories, and stops if one of those paths is a valid symlink; then
-   removes stale `~/.config/opencode/tui.json` and
+   the current repo;
+6. replaces dangling whole-folder symlinks at `~/.bashrc.d`, `~/.alias.d`, and
+   (on Ubuntu) `~/.profile.d` with real directories, and stops if one of those
+   paths is a valid symlink;
+7. removes stale `~/.config/opencode/tui.json` and
    `~/.config/opencode/themes/retro-82.json` symlinks that point into the
    repo; it never writes `~/.config/opencode/cli.json`;
-5. stows the shared packages plus `nix` and `ubuntu` on Ubuntu, or plus
-   `alacritty` and `cachyos` on CachyOS, all with `--no-folding`;
-6. runs `mise --cd mise/.config/mise install node`, then
-   `mise --cd mise/.config/mise install opencode`, so opencode's npm backend
-   finds its Node runtime from the tracked config (also with `--no-stow`).
+8. stows the shared packages plus `nix` and `ubuntu` on Ubuntu, or plus
+   `alacritty` and `cachyos` on CachyOS, all with `--no-folding`.
 
 Options: `--dry-run` prints every package/backup/stow command without running
 it; `--no-stow` installs tools but stops before backup and stow. The script
@@ -359,9 +365,10 @@ is `ubuntu`.
 The automated checks cover the loader, readline (`~/.inputrc`), history and
 completion, starship prompt/config, the interactive environment, the ported
 aliases and functions, the `pkg` backend dry-runs, the bat shim when
-`batcat`/`bat` is available, and the tmux keybindings. Both suites check that
-the Alacritty theme TOMLs stay in sync with the tracked Windows Terminal JSON;
-with `DISTRO=cachyos` the suite also checks the Alacritty config, all four
+`batcat`/`bat` is available, tmux keybindings, and a sandboxed `install.sh` run
+that covers the backup directory and the manifold migration. Both suites check
+that the Alacritty theme TOMLs stay in sync with the tracked Windows Terminal
+JSON; with `DISTRO=cachyos` the suite also checks the Alacritty config, all four
 stowed themes, the switcher's `alacritty msg config` payload, and the CachyOS
 font package declaration. With `bat` installed, each suite passes cleanly on
 its matching distro.
@@ -401,27 +408,26 @@ excluded by the single line in `.gitignore`:
 custom
 ```
 
-It has two loadable subfolders, matching the loader system, plus local scratch
-directories:
+It mirrors the loader's subfolders, plus local scratch directories:
 
 ```
 custom/
 ├── .alias.d/git                 # git-verify on/off
 ├── .archive/zsh_history-*       # old shell history
-├── .profile.d/                  # (empty, ready for use)
-└── .zshrc.d/                    # (empty, ready for use)
+├── .bashrc.d/                   # local interactive snippets (create as needed)
+└── .profile.d/                  # local environment snippets (currently empty)
 ```
 
 Language runtimes are owned by mise, not by `custom/`. The committed `mise`
 package carries the global tool versions in
 `mise/.config/mise/config.toml` (Node `26.13.1`, Temurin JDK
-`21.0.13+9.0.LTS`, and Rust's `stable` channel); machine-specific overrides, if
-ever needed, belong in `custom/`. Rust runs through rustup, which mise reuses at
-`~/.rustup`/`~/.cargo`; `idiomatic_version_file_enable_tools = ["rust"]` makes
-mise read a project's `rust-toolchain.toml`, so project pins win over the global
-`stable` channel and are installed on demand (`.nvmrc` remains ignored). The apt
-OpenJDK 21 JRE is retained for OS packages even though mise's JDK wins on
-`PATH`.
+`21.0.13+9.0.LTS`, Rust's `stable` channel, and opencode `latest`);
+machine-specific overrides, if ever needed, belong in `custom/`. Rust runs
+through rustup, which mise reuses at `~/.rustup`/`~/.cargo`;
+`idiomatic_version_file_enable_tools = ["rust"]` makes mise read a project's
+`rust-toolchain.toml`, so project pins win over the global `stable` channel and
+are installed on demand (`.nvmrc` remains ignored). The apt OpenJDK 21 JRE is
+retained for OS packages even though mise's JDK wins on `PATH` (Ubuntu target).
 
 ### How `custom/` reaches the loaders
 
